@@ -1,0 +1,238 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary: #0a0b14;
+  --bg-secondary: #0f1124;
+  --bg-card: rgba(255, 255, 255, 0.04);
+  --border-color: rgba(255, 255, 255, 0.08);
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --accent-blue: #5b78f5;
+  --accent-cyan: #00d4ff;
+  --glow-blue: rgba(91, 120, 245, 0.4);
+}
+
+.light {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #f1f5f9;
+  --bg-card: rgba(255, 255, 255, 0.8);
+  --border-color: rgba(0, 0, 0, 0.08);
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --accent-blue: #4358ea;
+  --accent-cyan: #0099cc;
+  --glow-blue: rgba(67, 88, 234, 0.2);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s, color 0.3s;
+  margin: 0;
+  min-height: 100vh;
+}
+
+/* Glassmorphism card */
+.glass-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 16px;
+  transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+  border-color: rgba(91, 120, 245, 0.3);
+  box-shadow: 0 0 30px rgba(91, 120, 245, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glow button */
+.btn-glow {
+  background: linear-gradient(135deg, #5b78f5, #00d4ff);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+  padding: 12px 28px;
+  position: relative;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.btn-glow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #7c98fa, #5cd8ff);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.btn-glow:hover::before {
+  opacity: 1;
+}
+
+.btn-glow:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(91, 120, 245, 0.5);
+}
+
+.btn-glow span {
+  position: relative;
+  z-index: 1;
+}
+
+/* Drop zone */
+.drop-zone {
+  border: 2px dashed rgba(91, 120, 245, 0.4);
+  border-radius: 20px;
+  transition: all 0.3s ease;
+  background: rgba(91, 120, 245, 0.03);
+}
+
+.drop-zone.active {
+  border-color: #5b78f5;
+  background: rgba(91, 120, 245, 0.08);
+  box-shadow: 0 0 40px rgba(91, 120, 245, 0.2), inset 0 0 40px rgba(91, 120, 245, 0.05);
+}
+
+/* Scanning animation */
+@keyframes scanLine {
+  0% { top: 0%; }
+  100% { top: 100%; }
+}
+
+.scan-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #00d4ff, transparent);
+  animation: scanLine 2s linear infinite;
+  box-shadow: 0 0 10px #00d4ff;
+}
+
+/* Progress bar */
+.progress-bar {
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.1);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #5b78f5, #00d4ff);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+/* Heatmap overlay */
+.heatmap-container {
+  position: relative;
+  display: inline-block;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.heatmap-container canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 12px;
+  opacity: 0.65;
+}
+
+/* Score ring */
+.score-ring {
+  filter: drop-shadow(0 0 12px currentColor);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(91, 120, 245, 0.4);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(91, 120, 245, 0.7);
+}
+
+/* Particle bg */
+.hero-bg {
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(91,120,245,0.15) 0%, transparent 70%);
+}
+
+/* Animated grid */
+.grid-bg {
+  background-image: 
+    linear-gradient(rgba(91,120,245,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(91,120,245,0.06) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* Neon badge */
+.badge-ai {
+  background: rgba(255, 0, 110, 0.15);
+  border: 1px solid rgba(255, 0, 110, 0.4);
+  color: #ff006e;
+  border-radius: 6px;
+  padding: 2px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-real {
+  background: rgba(57, 255, 20, 0.1);
+  border: 1px solid rgba(57, 255, 20, 0.4);
+  color: #39ff14;
+  border-radius: 6px;
+  padding: 2px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Input glass */
+.input-glass {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  color: var(--text-primary);
+  padding: 12px 16px;
+  width: 100%;
+  transition: all 0.3s;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.input-glass:focus {
+  border-color: rgba(91, 120, 245, 0.6);
+  box-shadow: 0 0 0 3px rgba(91, 120, 245, 0.15);
+}
+
+.input-glass::placeholder {
+  color: var(--text-secondary);
+}

@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Environment variables (contains DB credentials)
+server/.env
+.env
+
+# Build output
+client/dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+test_pixel.jpg
+
+# Python
+ai-service/__pycache__/
+ai-service/*.pyc
+ai-service/venv/
+ai-service/.venv/
