@@ -8,3 +8,7 @@ scipy
 scikit-image
 ffmpeg-python
 PyWavelets
+mediapipe
+torch
+torchvision
+transformers
