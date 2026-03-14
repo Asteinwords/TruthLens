@@ -1,9 +1,5 @@
-import { useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useDropzone } from 'react-dropzone'
-import { Upload, Zap, Shield, Eye, ChevronRight, Image, Video, Lock, BarChart3 } from 'lucide-react'
-import axios from 'axios'
-import AnalysisLoader from '../components/AnalysisLoader'
+import { Link } from 'react-router-dom'
+import { Zap, Shield, Eye, ChevronRight, Image, Video, Lock, BarChart3 } from 'lucide-react'
 
 const FEATURES = [
     { icon: Eye, title: 'Deep Vision Analysis', desc: 'Multi-layer neural network analysis detects GAN artifacts, diffusion traces, and manipulation patterns.' },
@@ -20,46 +16,6 @@ const STATS = [
 ]
 
 export default function Home() {
-    const [analyzing, setAnalyzing] = useState(false)
-    const [uploadedFile, setUploadedFile] = useState(null)
-    const [error, setError] = useState('')
-    const navigate = useNavigate()
-
-    const onDrop = useCallback(async (acceptedFiles) => {
-        const file = acceptedFiles[0]
-        if (!file) return
-        setError('')
-        setUploadedFile(file)
-        setAnalyzing(true)
-
-        const formData = new FormData()
-        formData.append('file', file)
-
-        try {
-            const res = await axios.post('/api/scans/upload', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
-                timeout: 60000,
-            })
-            setTimeout(() => {
-                setAnalyzing(false)
-                navigate('/results', { state: { result: res.data, file: { name: file.name, type: file.type, size: file.size } } })
-            }, 500)
-        } catch (err) {
-            setAnalyzing(false)
-            setError(err.response?.data?.message || 'Analysis failed. Please ensure the backend is running.')
-        }
-    }, [navigate])
-
-    const { getRootProps, getInputProps, isDragActive } = useDropzone({
-        onDrop,
-        accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'], 'video/*': ['.mp4', '.mov', '.avi', '.webm'] },
-        maxFiles: 1,
-        maxSize: 100 * 1024 * 1024,
-        disabled: analyzing,
-    })
-
-    if (analyzing) return <AnalysisLoader fileName={uploadedFile?.name} fileType={uploadedFile?.type} />
-
     return (
         <div className="min-h-screen">
             {/* Hero */}
@@ -82,52 +38,9 @@ export default function Home() {
                         TruthLens AI analyzes images and videos to determine if they are AI-generated or real — with pixel-level precision and detailed forensic reports.
                     </p>
 
-                    {/* Upload zone */}
-                    <div
-                        {...getRootProps()}
-                        className={`drop-zone mx-auto max-w-2xl cursor-pointer p-12 transition-all ${isDragActive ? 'active' : ''}`}
-                    >
-                        <input {...getInputProps()} />
-                        <div className="flex flex-col items-center gap-4">
-                            <div className="relative">
-                                <div className="w-20 h-20 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(91,120,245,0.15)', border: '1px solid rgba(91,120,245,0.3)' }}>
-                                    <Upload size={36} className="text-brand-400" />
-                                </div>
-                                {isDragActive && <div className="absolute inset-0 rounded-2xl animate-ping" style={{ background: 'rgba(91,120,245,0.2)' }} />}
-                            </div>
-
-                            <div>
-                                <p className="text-xl font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                                    {isDragActive ? 'Drop your file here...' : 'Drag & drop media to analyze'}
-                                </p>
-                                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                    or click to browse • JPG, PNG, MP4, MOV • Up to 100MB
-                                </p>
-                            </div>
-
-                            <div className="flex items-center gap-6 mt-2">
-                                <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                    <Image size={16} className="text-brand-400" /> Images
-                                </div>
-                                <div className="w-1 h-1 rounded-full" style={{ background: 'var(--text-secondary)' }} />
-                                <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                    <Video size={16} className="text-brand-400" /> Videos
-                                </div>
-                            </div>
-
-                            <button className="btn-glow mt-4">
-                                <span className="flex items-center gap-2">
-                                    <Zap size={16} /> Analyze Media <ChevronRight size={16} />
-                                </span>
-                            </button>
-                        </div>
-                    </div>
-
-                    {error && (
-                        <div className="mt-6 p-4 rounded-xl mx-auto max-w-2xl glass-card" style={{ borderColor: 'rgba(255,100,100,0.3)', borderWidth: 1 }}>
-                            <p className="text-red-400 text-sm">{error}</p>
-                        </div>
-                    )}
+                    <Link to="/media-analysis" className="btn-glow inline-flex items-center gap-2 px-8 py-4 text-lg">
+                        <Zap size={20} /> Start Media Analysis <ChevronRight size={20} />
+                    </Link>
                 </div>
             </section>
 

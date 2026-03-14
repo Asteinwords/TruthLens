@@ -7,6 +7,7 @@ const path = require('path')
 
 const authRoutes = require('./routes/auth')
 const scanRoutes = require('./routes/scans')
+const textRoutes = require('./routes/text')
 
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -20,6 +21,7 @@ app.use(express.urlencoded({ extended: true }))
 // Routes
 app.use('/api/auth', authRoutes)
 app.use('/api/scans', scanRoutes)
+app.use('/api/text', textRoutes)
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', service: 'TruthLens API', timestamp: new Date() }))

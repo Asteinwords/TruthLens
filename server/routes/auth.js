@@ -49,4 +49,44 @@ router.post('/login', async (req, res) => {
     }
 })
 
+// POST /api/auth/google
+const { OAuth2Client } = require('google-auth-library')
+// Use the client ID provided by the user
+const client = new OAuth2Client("247235363285-dgsfsno77ju87280sdhn8tlb0u4l73p1.apps.googleusercontent.com")
+
+router.post('/google', async (req, res) => {
+    try {
+        const { credential } = req.body
+        if (!credential) return res.status(400).json({ message: 'Google credential required' })
+
+        // Verify the token with Google
+        const ticket = await client.verifyIdToken({
+            idToken: credential,
+            audience: "247235363285-dgsfsno77ju87280sdhn8tlb0u4l73p1.apps.googleusercontent.com",
+        })
+        const payload = ticket.getPayload()
+        const { sub: googleId, email, name } = payload
+
+        // Find existing user by Google ID or Email
+        let user = await User.findOne({ $or: [{ googleId }, { email }] })
+
+        if (user) {
+            // Unify account if needed
+            if (!user.googleId) {
+                user.googleId = googleId
+                await user.save()
+            }
+        } else {
+            // Register new user (no password required)
+            user = await User.create({ name, email, googleId })
+        }
+
+        const token = sign(user)
+        res.json({ token, user: { id: user._id, email: user.email, name: user.name } })
+    } catch (err) {
+        console.error('Google Auth error:', err)
+        res.status(500).json({ message: 'Authentication failed' })
+    }
+})
+
 module.exports = router

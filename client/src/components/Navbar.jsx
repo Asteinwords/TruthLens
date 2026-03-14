@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTheme } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
-import { Sun, Moon, Shield, Menu, X, LayoutDashboard, BookOpen, Info, Home, LogOut, LogIn } from 'lucide-react'
+import { Sun, Moon, Shield, Menu, X, LayoutDashboard, BookOpen, Info, Home, LogOut, LogIn, FileText, Eye } from 'lucide-react'
 
 export default function Navbar() {
     const { isDark, toggle } = useTheme()
@@ -14,10 +14,10 @@ export default function Navbar() {
     const isActive = (path) => location.pathname === path
 
     const navLinks = [
-        { path: '/', label: 'Home', icon: Home },
-        { path: '/about', label: 'About', icon: Info },
-        { path: '/api-docs', label: 'API Docs', icon: BookOpen },
-        ...(user ? [{ path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard }] : []),
+        ...(user ? [{ path: '/', label: 'Dashboard', icon: LayoutDashboard }] : []),
+        { path: '/media-analysis', label: 'Media Analysis', icon: Eye },
+        { path: '/text-analyzer', label: 'Text Analyzer', icon: FileText },
+        { path: '/about', label: 'About', icon: Info }
     ]
 
     return (
@@ -41,18 +41,18 @@ export default function Navbar() {
                     </Link>
 
                     {/* Desktop nav */}
-                    <div className="hidden md:flex items-center gap-1">
+                    <div className="hidden md:flex flex-1 justify-center items-center gap-4 lg:gap-8 px-8">
                         {navLinks.map(({ path, label, icon: Icon }) => (
                             <Link
                                 key={path}
                                 to={path}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive(path)
-                                        ? 'bg-brand-500/10 text-brand-400 border border-brand-500/20'
-                                        : 'hover:bg-white/5'
+                                    ? 'bg-brand-500/10 text-brand-400 border border-brand-500/20'
+                                    : 'hover:bg-white/5'
                                     }`}
                                 style={{ color: isActive(path) ? undefined : 'var(--text-secondary)' }}
                             >
-                                <Icon size={15} />
+                                <Icon size={16} />
                                 {label}
                             </Link>
                         ))}
@@ -69,8 +69,14 @@ export default function Navbar() {
                         </button>
 
                         {user ? (
-                            <div className="flex items-center gap-3">
-                                <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{user.email}</span>
+                            <div className="flex items-center gap-4">
+                                <div className="hidden lg:flex flex-col items-end mr-2 text-right">
+                                    <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{user.name || 'User'}</span>
+                                    <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{user.email}</span>
+                                </div>
+                                <div className="lg:hidden flex items-center justify-center w-8 h-8 rounded-full bg-brand-500/20 text-brand-500 font-bold text-sm">
+                                    {(user.name || user.email || 'U').charAt(0).toUpperCase()}
+                                </div>
                                 <button
                                     onClick={() => { logout(); navigate('/') }}
                                     className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-red-500/10 hover:text-red-400"
@@ -122,9 +128,20 @@ export default function Navbar() {
                                 </Link>
                             )}
                             {user && (
-                                <button onClick={() => { logout(); navigate('/'); setMenuOpen(false) }} className="text-sm text-red-400 px-4 py-2">
-                                    Logout
-                                </button>
+                                <div className="flex flex-col w-full">
+                                    <div className="px-4 py-3 flex items-center gap-3 border-b mb-2" style={{ borderColor: 'var(--border-color)' }}>
+                                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-brand-500/20 text-brand-500 font-bold text-lg">
+                                            {(user.name || user.email || 'U').charAt(0).toUpperCase()}
+                                        </div>
+                                        <div className="flex flex-col text-left">
+                                            <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{user.name || 'User'}</span>
+                                            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{user.email}</span>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => { logout(); navigate('/'); setMenuOpen(false) }} className="flex items-center gap-2 text-sm text-red-400 hover:text-red-300 px-4 py-3 transition-colors">
+                                        <LogOut size={16} /> Logout
+                                    </button>
+                                </div>
                             )}
                         </div>
                     </div>

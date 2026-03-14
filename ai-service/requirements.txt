@@ -12,3 +12,5 @@ mediapipe
 torch
 torchvision
 transformers
+opencv-python
+scikit-image

@@ -1,4 +1,4 @@
-import { Brain, Eye, Database, Layers, Shield, Cpu, Zap, CheckCircle } from 'lucide-react'
+import { Brain, Eye, Database, Layers, Shield, Heart, Github, Linkedin, Instagram, Mail, Zap } from 'lucide-react'
 
 const HOW_IT_WORKS = [
     { step: '01', icon: Eye, title: 'Media Ingestion', desc: 'Your file is received and preprocessed — images are decoded to pixel arrays; videos are split into frames for temporal analysis.' },
@@ -77,25 +77,47 @@ export default function About() {
                     </div>
                 </div>
 
-                {/* Tech stack */}
-                <div className="glass-card p-8 text-center" style={{ border: '1px solid rgba(91,120,245,0.2)' }}>
-                    <Cpu size={32} className="text-brand-400 mx-auto mb-4" />
-                    <h2 className="text-2xl font-bold mb-3" style={{ color: 'var(--text-primary)' }}>Technology Stack</h2>
-                    <p className="text-sm mb-6 max-w-xl mx-auto" style={{ color: 'var(--text-secondary)' }}>
-                        Built on a microservices architecture designed for scale and accuracy.
-                    </p>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {[
-                            { cat: 'Frontend', tech: 'React + Tailwind' },
-                            { cat: 'API', tech: 'Node.js + Express' },
-                            { cat: 'AI Service', tech: 'Python FastAPI' },
-                            { cat: 'Database', tech: 'MongoDB Atlas' },
-                        ].map(({ cat, tech }) => (
-                            <div key={cat} className="p-3 rounded-xl" style={{ background: 'rgba(91,120,245,0.08)', border: '1px solid rgba(91,120,245,0.15)' }}>
-                                <p className="text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>{cat}</p>
-                                <p className="font-semibold text-sm gradient-text">{tech}</p>
-                            </div>
-                        ))}
+                {/* Contact Section */}
+                <div className="glass-card p-8 md:p-12 text-center relative overflow-hidden mt-12" style={{ border: '1px solid rgba(91,120,245,0.2)' }}>
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-brand-500/10 blur-[80px] rounded-full" />
+                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/10 blur-[80px] rounded-full" />
+                    
+                    <div className="relative z-10 w-full">
+                        <Heart size={36} className="text-brand-400 mx-auto mb-6" />
+                        <h2 className="text-3xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Meet the Developer</h2>
+                        <p className="text-base mb-10 max-w-2xl mx-auto" style={{ color: 'var(--text-secondary)' }}>
+                            Have questions, suggestions, or just want to say hi? Connect with me on social media or reach out directly via email.
+                        </p>
+                        
+                        <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8">
+                            <a href="https://github.com/Asteinwords" target="_blank" rel="noopener noreferrer" 
+                               className="flex items-center justify-center gap-3 px-6 py-4 rounded-2xl transition-all hover:-translate-y-1 hover:shadow-xl w-full sm:w-auto"
+                               style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
+                                <Github size={24} />
+                                <span className="font-semibold text-sm">GitHub</span>
+                            </a>
+                            
+                            <a href="https://www.linkedin.com/in/aman-singh-3b23741ba" target="_blank" rel="noopener noreferrer" 
+                               className="flex items-center justify-center gap-3 px-6 py-4 rounded-2xl transition-all hover:-translate-y-1 hover:shadow-xl w-full sm:w-auto"
+                               style={{ background: 'rgba(0,119,181,0.1)', border: '1px solid rgba(0,119,181,0.3)', color: '#0077b5' }}>
+                                <Linkedin size={24} />
+                                <span className="font-semibold text-sm">LinkedIn</span>
+                            </a>
+                            
+                            <a href="https://www.instagram.com/aman._.singh_11/" target="_blank" rel="noopener noreferrer" 
+                               className="flex items-center justify-center gap-3 px-6 py-4 rounded-2xl transition-all hover:-translate-y-1 hover:shadow-xl w-full sm:w-auto"
+                               style={{ background: 'linear-gradient(45deg, rgba(245,133,41,0.1) 0%, rgba(221,42,123,0.1) 50%, rgba(129,52,175,0.1) 100%)', border: '1px solid rgba(221,42,123,0.3)', color: '#dd2a7b' }}>
+                                <Instagram size={24} />
+                                <span className="font-semibold text-sm">Instagram</span>
+                            </a>
+                            
+                            <a href="mailto:aman11202004@gmail.com" 
+                               className="flex items-center justify-center gap-3 px-6 py-4 rounded-2xl transition-all hover:-translate-y-1 hover:shadow-xl w-full sm:w-auto"
+                               style={{ background: 'rgba(234,67,53,0.1)', border: '1px solid rgba(234,67,53,0.3)', color: '#ea4335' }}>
+                                <Mail size={24} />
+                                <span className="font-semibold text-sm">Email Me</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>

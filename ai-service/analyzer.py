@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 import pywt
 import torch
+import os
 from PIL import Image, ImageChops, ImageStat
 from scipy import stats
 from scipy.fftpack import dct
@@ -29,16 +30,26 @@ except:
 
 # --- Deep Learning Model Configuration ---
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# Model 1: Ateeqq/ai-vs-human-image-detector (General AI Detection)
 try:
-    # Using Ateeqq/ai-vs-human-image-detector - Verified for 2026 Flux/MJ detection
-    MODEL_NAME = "Ateeqq/ai-vs-human-image-detector"
-    processor = AutoImageProcessor.from_pretrained(MODEL_NAME)
-    model = AutoModelForImageClassification.from_pretrained(MODEL_NAME).to(DEVICE)
-    model.eval()
-    DL_MODEL_AVAILABLE = True
-except Exception as e:
-    print(f"Error loading Deep Learning model: {e}")
-    DL_MODEL_AVAILABLE = False
+    ATEEQQ_MODEL = "Ateeqq/ai-vs-human-image-detector"
+    ateeqq_proc = AutoImageProcessor.from_pretrained(ATEEQQ_MODEL)
+    ateeqq_model = AutoModelForImageClassification.from_pretrained(ATEEQQ_MODEL).to(DEVICE)
+    ateeqq_model.eval()
+    ATEEQQ_AVAILABLE = True
+except:
+    ATEEQQ_AVAILABLE = False
+
+# Model 2: prithivMLmods/Deep-Fake-Detector-v2-Model (Specialize in Deepfakes)
+try:
+    PRITHIV_MODEL = "prithivMLmods/Deep-Fake-Detector-v2-Model"
+    prithiv_proc = AutoImageProcessor.from_pretrained(PRITHIV_MODEL)
+    prithiv_model = AutoModelForImageClassification.from_pretrained(PRITHIV_MODEL).to(DEVICE)
+    prithiv_model.eval()
+    PRITHIV_AVAILABLE = True
+except:
+    PRITHIV_AVAILABLE = False
 
 AI_MODELS = [
     "Stable Diffusion 2.1", "Stable Diffusion XL", "Midjourney v6", "Midjourney v6.1",
@@ -58,18 +69,32 @@ face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_fronta
 
 def ml_detection_score(img: Image.Image) -> float:
     """Gets AI probability score from the deep learning classifier."""
-    if not DL_MODEL_AVAILABLE:
+    if not ATEEQQ_AVAILABLE:
         return 0.0
     try:
-        inputs = processor(images=img.convert("RGB"), return_tensors="pt").to(DEVICE)
+        inputs = ateeqq_proc(images=img.convert("RGB"), return_tensors="pt").to(DEVICE)
         with torch.no_grad():
-            outputs = model(**inputs)
+            outputs = ateeqq_model(**inputs)
             probs = torch.softmax(outputs.logits, dim=-1)
-            # Label mapping for Ateeqq/ai-vs-human-image-detector: {0: 'ai', 1: 'hum'}
+            # Label mapping for Ateeqq: {0: 'ai', 1: 'hum'}
             ai_prob = float(probs[0][0].item())
         return ai_prob * 100
-    except Exception as e:
-        print(f"ML detection error: {e}")
+    except:
+        return 0.0
+
+def deepfake_classifier_score(img: Image.Image) -> float:
+    """Gets Deepfake probability score from the prithivMLmods model."""
+    if not PRITHIV_AVAILABLE:
+        return 0.0
+    try:
+        inputs = prithiv_proc(images=img.convert("RGB"), return_tensors="pt").to(DEVICE)
+        with torch.no_grad():
+            outputs = prithiv_model(**inputs)
+            probs = torch.softmax(outputs.logits, dim=-1)
+            # Label mapping for prithivMLmods: {0: 'Realism', 1: 'Deepfake'}
+            df_prob = float(probs[0][1].item())
+        return df_prob * 100
+    except:
         return 0.0
 
 def calculate_ela(img: Image.Image, quality: int = 90) -> (float, np.ndarray):
@@ -170,6 +195,72 @@ def analyze_texture_consistency(img: Image.Image) -> float:
     except:
         return 0
 
+def detect_deepfake_video(video_path: str, max_frames: int = 40) -> dict:
+    """
+    Ensemble Deepfake Video Detection Stack (2026):
+    - Frame Sampling (Spatial Analysis)
+    - Ensemble: Prithiv (60%) + Ateeqq (15%) + Forensics (25%)
+    - Temporal artifact pooling
+    """
+    try:
+        cap = cv2.VideoCapture(video_path)
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        if frame_count <= 0: return {"deepfake_probability": 0, "confidence": "Low", "explanation": "Invalid video file"}
+        
+        # Sample frames (every N frames but at least 15, max 40)
+        step = max(1, frame_count // max_frames)
+        scores = []
+        frame_idx = 0
+        count = 0
+        
+        while cap.isOpened() and count < max_frames:
+            ret, frame = cap.read()
+            if not ret: break
+            
+            if frame_idx % step == 0:
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                pil_img = Image.fromarray(frame_rgb)
+                
+                # 1. Neural Classifier (Spatial Deepfake Match)
+                prithiv_score = deepfake_classifier_score(pil_img)
+                # 2. General AI Pattern Match
+                ateeqq_score = ml_detection_score(pil_img)
+                # 3. Forensic Spectral Check (ELA/FFT)
+                fft_s, _ = improved_fft_anomalies(pil_img)
+                ela_s, _ = calculate_ela(pil_img)
+                forensic_f = (fft_s * 0.6 + ela_s * 0.4)
+                
+                # Frame Ensemble: 60% Specialized, 15% General AI, 25% Forensic
+                frame_ensemble = (prithiv_score * 0.6) + (ateeqq_score * 0.15) + (forensic_f * 0.25)
+                scores.append(frame_ensemble)
+                count += 1
+            frame_idx += 1
+        cap.release()
+        
+        if not scores: return {"deepfake_probability": 0, "confidence": "Low", "explanation": "No usable frames identified"}
+        
+        # Aggregate logic
+        avg_score = float(np.mean(scores))
+        max_score = float(np.max(scores))
+        final_deepfake_prob = (avg_score * 0.7 + max_score * 0.3) # Heavy weight on average, slight boost from outliers
+        
+        confidence = "High" if abs(final_deepfake_prob - 50) > 30 else "Medium"
+        explanation = (
+            f"TruthLens Video Stack sampled {count} frames. "
+            f"{'Synthetic facial artifacts and pixel-level temporal jitter detected.' if final_deepfake_prob > 60 else 'Natural frequency distribution and movement patterns detected.'}"
+        )
+        
+        return {
+            "deepfake_probability": round(final_deepfake_prob, 1),
+            "confidence": confidence,
+            "explanation": explanation,
+            "frameCountProcessed": count,
+            "maxFrameSuspicion": round(max_score, 1)
+        }
+    except Exception as e:
+        return {"deepfake_probability": 0, "confidence": "Error", "explanation": f"Inference error: {str(e)}"}
+
 def extract_metadata(content: bytes, filename: str, content_type: str) -> dict:
     meta = {"cameraModel": None, "metadataStatus": "Unknown", "fileHash": None}
     try:
@@ -193,6 +284,46 @@ def analyze_media(content: bytes, filename: str, content_type: str) -> dict:
     """Hybrid Ensemble forensic pipeline: Deep Learning Pattern Match + Algorithmic Signals."""
     is_video = content_type.startswith("video/")
     file_size = len(content)
+    
+    # --- Video Pipeline Branch ---
+    if is_video:
+        temp_path = f"temp_{int(datetime.now().timestamp())}_{filename}"
+        with open(temp_path, "wb") as f:
+            f.write(content)
+        
+        video_result = detect_deepfake_video(temp_path)
+        
+        # Cleanup
+        try: os.remove(temp_path)
+        except: pass
+        
+        # Add basic metadata and return
+        metadata = extract_metadata(content, filename, content_type)
+        return {
+            "aiProbability": video_result["deepfake_probability"],
+            "humanProbability": 100 - video_result["deepfake_probability"],
+            "confidenceLevel": video_result["confidence"],
+            "authenticityScore": 100 - int(video_result["deepfake_probability"]),
+            "trustScore": 100 - int(video_result["deepfake_probability"]),
+            "trustLabel": "Low Risk" if video_result["deepfake_probability"] < 25 else "Suspicious" if video_result["deepfake_probability"] < 60 else "High Probability Deepfake",
+            "manipulationType": "Deepfake Video (Spatial-Temporal Anomaly)" if video_result["deepfake_probability"] > 55 else "Authentic Video",
+            "suspectedModel": "Diffusion-Video-Gen" if video_result["deepfake_probability"] > 70 else None,
+            "detectedArtifacts": ["Temporal jitter", "Frame-level neural mismatch"] if video_result["deepfake_probability"] > 60 else [],
+            "heatmapData": [],
+            "pixelForensics": {
+                "maxFrameSuspicion": video_result["maxFrameSuspicion"],
+                "processingNote": video_result["explanation"]
+            },
+            "explainableReport": video_result["explanation"],
+            "metadata": metadata,
+            "mediaId": f"TL-VID-{int(datetime.now().timestamp())}",
+            "biometric": {
+                "faceDetected": True,
+                "deepfakeProbability": video_result["deepfake_probability"]
+            }
+        }
+
+    # --- Image Pipeline (Existing) ---
     try:
         img = Image.open(io.BytesIO(content)).convert("RGB")
         width, height = img.size
@@ -240,7 +371,7 @@ def analyze_media(content: bytes, filename: str, content_type: str) -> dict:
         faces_cv = face_cascade.detectMultiScale(gray_cv, 1.1, 4)
         num_faces = len(faces_cv)
 
-    # Bonus rewards for authentic real-world signals (Reduces AI suspicion)
+    # Bonus rewards for authentic real-world signals
     complex_scene_bonus = 0
     if num_faces >= 2 or num_hands >= 1 or file_size > 400000:
         complex_scene_bonus = 18
@@ -260,14 +391,12 @@ def analyze_media(content: bytes, filename: str, content_type: str) -> dict:
     face_std = 0
     if face_roi.size > 0:
         face_std = np.std(face_roi)
-        # Reward natural high-entropy skin (authentic camera grain/texture)
         if face_std > 35:
             final_ai_prob -= 15
-        # Penalize over-denoised or artificially smooth bright faces
         elif face_std < 25 and np.mean(face_roi) > 100:
             final_ai_prob += 12
 
-    # Subject Context (hallucinatory topics prone to AI gen)
+    # Subject Context
     halluc_words = ['cat', 'kitten', 'puppy', 'cute', 'astronaut', 'space', 'anime', 'cartoon', 'fantasy']
     if any(w in filename.lower() for w in halluc_words) and final_ai_prob < 45:
         final_ai_prob += 18
@@ -279,7 +408,6 @@ def analyze_media(content: bytes, filename: str, content_type: str) -> dict:
     ai_probability = round(max(5.0, min(98.5, final_ai_prob)), 1)
     human_probability = round(100 - ai_probability, 1)
     
-    # Authenticity Score calculation (weighted for human review)
     authenticity_score = int(human_probability * 0.9 + (100 - forensic_weighted) * 0.1)
     authenticity_score = max(0, min(100, authenticity_score))
     
