@@ -125,6 +125,8 @@ def get_transformer_model():
     model_name = "microsoft/deberta-v3-large"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSequenceClassification.from_pretrained(model_name)
+    # CPU Quantization (2x faster, 4x less RAM)
+    model = torch.quantization.quantize_dynamic(model, {torch.nn.Linear}, dtype=torch.qint8)
     model.eval()
     return tokenizer, model
 
@@ -134,6 +136,8 @@ def get_perplexity_model():
     print("Loading GPT-2 for Perplexity...")
     tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
     model = GPT2LMHeadModel.from_pretrained("gpt2")
+    # CPU Quantization (2x faster, 4x less RAM)
+    model = torch.quantization.quantize_dynamic(model, {torch.nn.Linear}, dtype=torch.qint8)
     model.eval()
     return tokenizer, model
 
