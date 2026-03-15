@@ -16,7 +16,13 @@ app.add_middleware(
 
 @app.get("/")
 def root():
-    return {"status": "ok", "service": "TruthLens AI Analysis Service"}
+    lite_mode = os.getenv("LITE_MODE") == "true"
+    return {
+        "status": "ok", 
+        "service": "TruthLens AI Analysis Service",
+        "lite_mode": lite_mode,
+        "note": "Running in high-performance mode" if not lite_mode else "Running in Lite Mode (Free Tier optimized)"
+    }
 
 @app.get("/health")
 def health():

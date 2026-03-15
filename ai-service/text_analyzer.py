@@ -71,15 +71,23 @@ import math
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, GPT2LMHeadModel, GPT2Tokenizer
 import nltk
 
-# Ensure NLTK data is ready
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt')
-try:
-    nltk.data.find('tokenizers/punkt_tab')
-except LookupError:
-    nltk.download('punkt_tab')
+# === NLTK Assets (Lazy downloaded on first use) ===
+@lru_cache(None)
+def download_nltk_assets():
+    try:
+        print("Checking NLTK assets...")
+        try:
+            nltk.data.find('tokenizers/punkt')
+        except LookupError:
+            nltk.download('punkt')
+        try:
+            nltk.data.find('tokenizers/punkt_tab')
+        except LookupError:
+            nltk.download('punkt_tab')
+        return True
+    except Exception as e:
+        print(f"NLTK Download Failed: {e}")
+        return False
 
 # === MODELS (Cached global loaders) ===
 @lru_cache(None)
@@ -121,6 +129,7 @@ def chunk_text(text, size=200):
 
 # === LAYER 1: Transformer Classification ===
 def transformer_score(text):
+    if os.getenv("LITE_MODE") == "true": return 50.0
     try:
         tokenizer, model = get_transformer_model()
         inputs = tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
@@ -134,6 +143,7 @@ def transformer_score(text):
 
 # === LAYER 2: Perplexity Analysis ===
 def perplexity_score(text):
+    if os.getenv("LITE_MODE") == "true": return 80.0
     try:
         tokenizer, model = get_perplexity_model()
         encodings = tokenizer(text, return_tensors="pt")
@@ -163,6 +173,7 @@ def perplexity_score(text):
 # === LAYER 3: Burstiness Detection ===
 def burstiness_score(text):
     try:
+        download_nltk_assets()
         sentences = nltk.sent_tokenize(text)
         if len(sentences) <= 1: return 0.0
         lengths = [len(s.split()) for s in sentences]
@@ -264,6 +275,7 @@ def detect_ai_text(text: str) -> Dict:
 
 def statistical_humanizer(text):
     try:
+        download_nltk_assets()
         sentences = nltk.sent_tokenize(text)
         new_sentences = []
         for s in sentences:

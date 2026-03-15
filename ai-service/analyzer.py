@@ -31,50 +31,68 @@ except:
 # --- Deep Learning Model Configuration ---
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Model 1: Ateeqq/ai-vs-human-image-detector (General AI Detection)
-try:
-    ATEEQQ_MODEL = "Ateeqq/ai-vs-human-image-detector"
-    ateeqq_proc = AutoImageProcessor.from_pretrained(ATEEQQ_MODEL)
-    ateeqq_model = AutoModelForImageClassification.from_pretrained(ATEEQQ_MODEL).to(DEVICE)
-    ateeqq_model.eval()
-    ATEEQQ_AVAILABLE = True
-except:
-    ATEEQQ_AVAILABLE = False
+from functools import lru_cache
 
-# Model 2: prithivMLmods/Deep-Fake-Detector-v2-Model (Specialize in Deepfakes)
-try:
-    PRITHIV_MODEL = "prithivMLmods/Deep-Fake-Detector-v2-Model"
-    prithiv_proc = AutoImageProcessor.from_pretrained(PRITHIV_MODEL)
-    prithiv_model = AutoModelForImageClassification.from_pretrained(PRITHIV_MODEL).to(DEVICE)
-    prithiv_model.eval()
-    PRITHIV_AVAILABLE = True
-except:
-    PRITHIV_AVAILABLE = False
+# --- Lazy Loaders for Memory Efficiency (Critical for 512MB RAM) ---
+
+@lru_cache(None)
+def get_ateeqq_model():
+    """Lazy load Ateeqq AI Image Detector"""
+    try:
+        print("Loading Ateeqq Neural Layer...")
+        model_name = "Ateeqq/ai-vs-human-image-detector"
+        proc = AutoImageProcessor.from_pretrained(model_name)
+        model = AutoModelForImageClassification.from_pretrained(model_name).to(DEVICE)
+        model.eval()
+        return proc, model
+    except Exception as e:
+        print(f"Ateeqq Load Failed: {e}")
+        return None, None
+
+@lru_cache(None)
+def get_prithiv_model():
+    """Lazy load Prithiv Deepfake Detector"""
+    try:
+        print("Loading Prithiv Deepfake Layer...")
+        model_name = "prithivMLmods/Deep-Fake-Detector-v2-Model"
+        proc = AutoImageProcessor.from_pretrained(model_name)
+        model = AutoModelForImageClassification.from_pretrained(model_name).to(DEVICE)
+        model.eval()
+        return proc, model
+    except Exception as e:
+        print(f"Prithiv Load Failed: {e}")
+        return None, None
+
+@lru_cache(None)
+def get_mediapipe_detectors():
+    """Lazy load MediaPipe face/hand detectors"""
+    if not MP_AVAILABLE: return None, None
+    try:
+        print("Loading MediaPipe Detectors...")
+        face = mp_face_detector.FaceDetection(min_detection_confidence=0.5)
+        hands = mp_hands_detector.Hands(static_image_mode=True, max_num_hands=4)
+        return face, hands
+    except Exception as e:
+        print(f"MediaPipe Init Failed: {e}")
+        return None, None
 
 AI_MODELS = [
     "Stable Diffusion 2.1", "Stable Diffusion XL", "Midjourney v6", "Midjourney v6.1",
     "DALL·E 3", "Adobe Firefly 2.0", "DeepFloyd IF", "Imagen 2", "Flux.1", "Flux Dev",
 ]
 
-# Initialize Detectors
-if MP_AVAILABLE:
-    try:
-        mp_face = mp_face_detector.FaceDetection(min_detection_confidence=0.5)
-        mp_hands = mp_hands_detector.Hands(static_image_mode=True, max_num_hands=4)
-    except:
-        MP_AVAILABLE = False
-
 # Haar Cascade Fallback
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
 def ml_detection_score(img: Image.Image) -> float:
     """Gets AI probability score from the deep learning classifier."""
-    if not ATEEQQ_AVAILABLE:
-        return 0.0
+    if os.getenv("LITE_MODE") == "true": return 0.0
+    proc, model = get_ateeqq_model()
+    if not model: return 0.0
     try:
-        inputs = ateeqq_proc(images=img.convert("RGB"), return_tensors="pt").to(DEVICE)
+        inputs = proc(images=img.convert("RGB"), return_tensors="pt").to(DEVICE)
         with torch.no_grad():
-            outputs = ateeqq_model(**inputs)
+            outputs = model(**inputs)
             probs = torch.softmax(outputs.logits, dim=-1)
             # Label mapping for Ateeqq: {0: 'ai', 1: 'hum'}
             ai_prob = float(probs[0][0].item())
@@ -84,12 +102,13 @@ def ml_detection_score(img: Image.Image) -> float:
 
 def deepfake_classifier_score(img: Image.Image) -> float:
     """Gets Deepfake probability score from the prithivMLmods model."""
-    if not PRITHIV_AVAILABLE:
-        return 0.0
+    if os.getenv("LITE_MODE") == "true": return 0.0
+    proc, model = get_prithiv_model()
+    if not model: return 0.0
     try:
-        inputs = prithiv_proc(images=img.convert("RGB"), return_tensors="pt").to(DEVICE)
+        inputs = proc(images=img.convert("RGB"), return_tensors="pt").to(DEVICE)
         with torch.no_grad():
-            outputs = prithiv_model(**inputs)
+            outputs = model(**inputs)
             probs = torch.softmax(outputs.logits, dim=-1)
             # Label mapping for prithivMLmods: {0: 'Realism', 1: 'Deepfake'}
             df_prob = float(probs[0][1].item())
@@ -358,12 +377,15 @@ def analyze_media(content: bytes, filename: str, content_type: str) -> dict:
     img_rgb = np.array(img)
     num_faces = 0
     num_hands = 0
-    if MP_AVAILABLE:
+    if MP_AVAILABLE and os.getenv("LITE_MODE") != "true":
         try:
-            face_results = mp_face.process(img_rgb)
-            hand_results = mp_hands.process(img_rgb)
-            num_faces = len(face_results.detections) if face_results.detections else 0
-            num_hands = len(hand_results.multi_hand_landmarks) if hand_results.multi_hand_landmarks else 0
+            mp_face, mp_hands = get_mediapipe_detectors()
+            if mp_face:
+                face_results = mp_face.process(img_rgb)
+                num_faces = len(face_results.detections) if face_results.detections else 0
+            if mp_hands:
+                hand_results = mp_hands.process(img_rgb)
+                num_hands = len(hand_results.multi_hand_landmarks) if hand_results.multi_hand_landmarks else 0
         except: pass
     
     if num_faces == 0:
