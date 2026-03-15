@@ -45,6 +45,7 @@ mongoose.connect(process.env.MONGODB_URI, {
     tlsAllowInvalidCertificates: true,
     serverSelectionTimeoutMS: 10000,
     socketTimeoutMS: 45000,
+    bufferCommands: false, // Prevent hanging on Netlify proxy
 })
     .then(() => {
         console.log('✅ MongoDB connected')
