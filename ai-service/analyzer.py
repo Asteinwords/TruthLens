@@ -71,6 +71,9 @@ def get_ateeqq_model():
         model_name = "Ateeqq/ai-vs-human-image-detector"
         proc = AutoImageProcessor.from_pretrained(model_name)
         model = AutoModelForImageClassification.from_pretrained(model_name).to(DEVICE)
+        # Dynamic quantization for 3x speedup on CPU
+        if DEVICE.type == "cpu":
+            model = torch.quantization.quantize_dynamic(model, {torch.nn.Linear}, dtype=torch.qint8)
         model.eval()
         return proc, model
     except Exception as e:
