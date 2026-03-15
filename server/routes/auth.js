@@ -3,11 +3,16 @@ const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const User = require('../models/User')
 
-const sign = (user) => jwt.sign(
-    { id: user._id, email: user.email, name: user.name },
-    process.env.JWT_SECRET,
-    { expiresIn: '7d' }
-)
+const sign = (user) => {
+    if (!process.env.JWT_SECRET) {
+        throw new Error('JWT_SECRET is not defined in environment variables')
+    }
+    return jwt.sign(
+        { id: user._id, email: user.email, name: user.name },
+        process.env.JWT_SECRET,
+        { expiresIn: '7d' }
+    )
+}
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
@@ -25,7 +30,11 @@ router.post('/register', async (req, res) => {
         res.status(201).json({ token, user: { id: user._id, email: user.email, name: user.name } })
     } catch (err) {
         console.error('Register error:', err)
-        res.status(500).json({ message: 'Server error' })
+        const isDbError = mongoose.connection.readyState !== 1
+        res.status(500).json({ 
+            message: isDbError ? 'Database connection error' : 'Server error during registration',
+            error: process.env.NODE_ENV === 'development' ? err.message : undefined
+        })
     }
 })
 
@@ -45,7 +54,11 @@ router.post('/login', async (req, res) => {
         res.json({ token, user: { id: user._id, email: user.email, name: user.name } })
     } catch (err) {
         console.error('Login error:', err)
-        res.status(500).json({ message: 'Server error' })
+        const isDbError = mongoose.connection.readyState !== 1
+        res.status(500).json({ 
+            message: isDbError ? 'Database connection error' : 'Server error during login',
+            error: process.env.NODE_ENV === 'development' ? err.message : undefined
+        })
     }
 })
 
@@ -85,7 +98,11 @@ router.post('/google', async (req, res) => {
         res.json({ token, user: { id: user._id, email: user.email, name: user.name } })
     } catch (err) {
         console.error('Google Auth error:', err)
-        res.status(500).json({ message: 'Authentication failed' })
+        const isDbError = mongoose.connection.readyState !== 1
+        res.status(500).json({ 
+            message: isDbError ? 'Database connection error' : 'Authentication failed',
+            details: err.message
+        })
     }
 })
 

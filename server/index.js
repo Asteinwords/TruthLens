@@ -13,7 +13,10 @@ const app = express()
 const PORT = process.env.PORT || 5000
 
 // Middleware
-app.use(helmet({ crossOriginResourcePolicy: false }))
+app.use(helmet({
+    crossOriginResourcePolicy: false,
+    crossOriginOpenerPolicy: false,
+}))
 const frontendURL = process.env.FRONTEND_URL || 'http://localhost:5173'
 const allowedOrigins = frontendURL.split(',').map(url => url.trim())
 app.use(cors({ origin: allowedOrigins, credentials: true }))
@@ -26,7 +29,15 @@ app.use('/api/scans', scanRoutes)
 app.use('/api/text', textRoutes)
 
 // Health check
-app.get('/api/health', (req, res) => res.json({ status: 'ok', service: 'TruthLens API', timestamp: new Date() }))
+app.get('/api/health', (req, res) => {
+    const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+    res.json({ 
+        status: 'ok', 
+        service: 'TruthLens API', 
+        mongodb: dbStatus,
+        timestamp: new Date() 
+    })
+})
 
 // MongoDB connect + start
 mongoose.connect(process.env.MONGODB_URI, {
