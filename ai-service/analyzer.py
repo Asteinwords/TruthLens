@@ -386,8 +386,17 @@ def analyze_media(content, filename, content_type):
     )
 
     # --- Ensemble Final Score (State-of-the-Art 2026 methodology) ---
-    # 65% weight on Neural pattern recognition, 35% on forensic algorithmic anomalies
-    final_ai_prob = (ml_score * 0.65) + (forensic_weighted * 0.35)
+    is_lite = os.getenv("LITE_MODE") == "true"
+    
+    if is_lite:
+        # In Lite Mode, neural detection is skipped to save RAM.
+        # We rebalance forensic signals to 90% of the total score.
+        final_ai_prob = forensic_weighted * 1.8 
+        # Add a minimum threshold for suspected AI if forensics detect anything.
+        if forensic_weighted > 15: final_ai_prob = max(final_ai_prob, 42.0)
+    else:
+        # 65% weight on Neural pattern recognition, 35% on forensic algorithmic anomalies
+        final_ai_prob = (ml_score * 0.65) + (forensic_weighted * 0.35)
 
     num_faces = 0
     num_hands = 0
