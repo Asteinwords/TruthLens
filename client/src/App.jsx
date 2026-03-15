@@ -20,7 +20,7 @@ function ProtectedRoute({ children }) {
 function AppInner() {
     return (
         <BrowserRouter>
-            <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+            <div className="min-h-screen flex flex-col bg-transparent">
                 <Navbar />
                 <Routes>
                     <Route path="/" element={

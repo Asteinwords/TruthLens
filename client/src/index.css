@@ -5,29 +5,41 @@
 :root {
   --bg-primary: #0a0b14;
   --bg-secondary: #0f1124;
-  --bg-card: rgba(255, 255, 255, 0.04);
+  --bg-card: rgba(10, 11, 20, 0.4);
   --border-color: rgba(255, 255, 255, 0.08);
   --text-primary: #f1f5f9;
   --text-secondary: #94a3b8;
   --accent-blue: #5b78f5;
   --accent-cyan: #00d4ff;
   --glow-blue: rgba(91, 120, 245, 0.4);
+  --overlay-bg: linear-gradient(to bottom, rgba(10, 11, 20, 0.7) 0%, rgba(10, 11, 20, 0.3) 100%);
+  --dropzone-bg: rgba(10, 11, 20, 0.4);
+  --dropzone-border: rgba(91, 120, 245, 0.4);
 }
 
 .light {
   --bg-primary: #f8fafc;
   --bg-secondary: #f1f5f9;
-  --bg-card: rgba(255, 255, 255, 0.8);
-  --border-color: rgba(0, 0, 0, 0.08);
-  --text-primary: #0f172a;
-  --text-secondary: #64748b;
+  --bg-card: rgba(255, 255, 255, 0.4);
+  --border-color: rgba(255, 255, 255, 0.5);
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
   --accent-blue: #4358ea;
   --accent-cyan: #0099cc;
   --glow-blue: rgba(67, 88, 234, 0.2);
+  --overlay-bg: linear-gradient(to bottom, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.15) 100%);
+  --dropzone-bg: rgba(255, 255, 255, 0.35);
+  --dropzone-border: rgba(255, 255, 255, 0.7);
 }
 
 * {
   box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  overflow-x: hidden;
 }
 
 body {
@@ -35,8 +47,23 @@ body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
   transition: background-color 0.3s, color 0.3s;
-  margin: 0;
   min-height: 100vh;
+  min-height: 100vh;
+  background-image: url('/Image_Web.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--overlay-bg);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  pointer-events: none;
 }
 
 /* Glassmorphism card */
@@ -102,10 +129,13 @@ body {
 
 /* Drop zone */
 .drop-zone {
-  border: 2px dashed rgba(91, 120, 245, 0.4);
-  border-radius: 20px;
+  border: 1px dashed var(--dropzone-border);
+  border-radius: 24px;
   transition: all 0.3s ease;
-  background: rgba(91, 120, 245, 0.03);
+  background: var(--dropzone-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
 }
 
 .drop-zone.active {
@@ -116,8 +146,13 @@ body {
 
 /* Scanning animation */
 @keyframes scanLine {
-  0% { top: 0%; }
-  100% { top: 100%; }
+  0% {
+    top: 0%;
+  }
+
+  100% {
+    top: 100%;
+  }
 }
 
 .scan-line {
@@ -134,7 +169,7 @@ body {
 .progress-bar {
   height: 4px;
   border-radius: 4px;
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
   overflow: hidden;
 }
 
@@ -170,27 +205,30 @@ body {
 ::-webkit-scrollbar {
   width: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: var(--bg-secondary);
 }
+
 ::-webkit-scrollbar-thumb {
   background: rgba(91, 120, 245, 0.4);
   border-radius: 3px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(91, 120, 245, 0.7);
 }
 
 /* Particle bg */
 .hero-bg {
-  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(91,120,245,0.15) 0%, transparent 70%);
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(91, 120, 245, 0.15) 0%, transparent 70%);
 }
 
 /* Animated grid */
 .grid-bg {
-  background-image: 
-    linear-gradient(rgba(91,120,245,0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(91,120,245,0.06) 1px, transparent 1px);
+  background-image:
+    linear-gradient(rgba(91, 120, 245, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(91, 120, 245, 0.06) 1px, transparent 1px);
   background-size: 60px 60px;
 }
 

@@ -25,9 +25,22 @@ export default function TextAnalyzer() {
         }
 
         const targetText = textToAnalyze || text
+        const wordCount = targetText.trim() ? targetText.trim().split(/\s+/).length : 0
+
         if (!targetText.trim() && !file && !isRecheck) {
             setError('Please enter text or upload a document.')
             return
+        }
+
+        if (!file) {
+            if (wordCount < 200) {
+                setError('Minimum 200 words required for precise forensic analysis.')
+                return
+            }
+            if (wordCount > 500) {
+                setError('Maximum word limit is 500 words for optimal performance.')
+                return
+            }
         }
 
         if (isRecheck) {
@@ -126,7 +139,8 @@ export default function TextAnalyzer() {
                         Text AI Detector + Humanizer
                     </h1>
                     <p className="text-lg max-w-xl mx-auto" style={{ color: 'var(--text-secondary)' }}>
-                        Hybrid Neural-Forensic analysis with RoBERTa-base detection. Rewrite AI patterns instantly for organic, undetectable flow.
+                        6-Layer Forensic analysis with DeBERTa-v3 Transformer & GPT-2 Perplexity detection. 
+                        Achieve 99% undetectability check.
                     </p>
                 </div>
 
@@ -142,18 +156,23 @@ export default function TextAnalyzer() {
                                     if (e.target.value) setFile(null)
                                 }}
                                 disabled={analyzing || humanizing}
-                                placeholder="Paste your text here to analyze for AI patterns..."
-                                className="w-full h-56 p-6 rounded-2xl bg-black/20 border border-white/5 focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/30 transition-all resize-none font-light leading-relaxed"
+                                placeholder="Paste 200-500 words for the most accurate AI pattern detection..."
+                                className={`w-full h-56 p-6 rounded-2xl bg-black/20 border transition-all resize-none font-light leading-relaxed ${(text.trim().split(/\s+/).filter(w => w).length > 0 && (text.trim().split(/\s+/).filter(w => w).length < 200 || text.trim().split(/\s+/).filter(w => w).length > 500)) ? 'border-red-500/50' : 'border-white/5 focus:border-brand-500/50'}`}
                                 style={{ color: 'var(--text-primary)' }}
                             />
                             {text && (
-                                <button
-                                    onClick={() => setText('')}
-                                    className="absolute top-4 right-4 text-xs opacity-50 hover:opacity-100 transition-opacity"
-                                    style={{ color: 'var(--text-secondary)' }}
-                                >
-                                    Clear
-                                </button>
+                                <div className="absolute top-4 right-4 flex items-center gap-4">
+                                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${(text.trim().split(/\s+/).filter(w => w).length < 200 || text.trim().split(/\s+/).filter(w => w).length > 500) ? 'bg-red-500/20 text-red-500' : 'bg-white/5 text-white/40'}`}>
+                                        {text.trim().split(/\s+/).filter(w => w).length}/500 words
+                                    </span>
+                                    <button
+                                        onClick={() => setText('')}
+                                        className="text-xs opacity-50 hover:opacity-100 transition-opacity"
+                                        style={{ color: 'var(--text-secondary)' }}
+                                    >
+                                        Clear
+                                    </button>
+                                </div>
                             )}
                         </div>
 
@@ -233,20 +252,39 @@ export default function TextAnalyzer() {
                                 <h3 className="text-sm font-bold opacity-40 uppercase tracking-widest border-b border-white/5 pb-2">Analysis Breakdown</h3>
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-sm">Transformer Pattern Match</span>
+                                        <div className="flex flex-col">
+                                            <span className="text-sm">Transformer Score</span>
+                                            <span className="text-[10px] opacity-40">DeBERTa-v3 contextual check</span>
+                                        </div>
                                         <span className="font-mono text-brand-400">{result.transformerScore ?? '---'}%</span>
                                     </div>
                                     <div className="flex items-center justify-between">
-                                        <span className="text-sm">Statistical Forensic Score</span>
-                                        <span className="font-mono text-brand-400">{result.statisticalScore}%</span>
+                                        <div className="flex flex-col">
+                                            <span className="text-sm">Statistical Perplexity</span>
+                                            <span className="text-[10px] opacity-40">GPT-2 predictability score</span>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="font-mono text-brand-400 block">{result.perplexity ?? '---'}</span>
+                                            <span className="text-[9px] opacity-40">{result.perplexity < 40 ? 'Predictable (AI)' : result.perplexity > 80 ? 'Irregular (Human)' : 'Neutral'}</span>
+                                        </div>
                                     </div>
                                     <div className="flex items-center justify-between">
-                                        <span className="text-sm">Human Likelihood</span>
-                                        <span className="font-mono text-green-400">{result.humanProbability}%</span>
+                                        <div className="flex flex-col">
+                                            <span className="text-sm">Sentence Burstiness</span>
+                                            <span className="text-[10px] opacity-40">Variance in structure</span>
+                                        </div>
+                                        <span className="font-mono text-brand-400">{result.burstiness ?? '---'}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex flex-col">
+                                            <span className="text-sm">Shannon Entropy</span>
+                                            <span className="text-[10px] opacity-40">Information density</span>
+                                        </div>
+                                        <span className="font-mono text-green-400">{result.entropy ?? '---'}</span>
                                     </div>
                                     <div className="flex items-center justify-between border-t border-white/5 pt-2">
-                                        <span className="text-sm opacity-60">Word Count</span>
-                                        <span className="font-mono font-bold">{result.wordCount}</span>
+                                        <span className="text-sm opacity-60">Human Confidence</span>
+                                        <span className="font-mono font-bold text-green-400">{result.humanProbability}%</span>
                                     </div>
                                 </div>
                             </div>
@@ -297,7 +335,7 @@ export default function TextAnalyzer() {
                                         </div>
                                     </div>
 
-                                    <div className="p-8 bg-brand-500/5 rounded-2xl border border-brand-500/10 whitespace-pre-wrap text-[15px] leading-relaxed font-light text-gray-200">
+                                    <div className="p-8 bg-black/40 backdrop-blur-md rounded-2xl border border-white/10 whitespace-pre-wrap text-[15px] leading-relaxed font-medium text-white shadow-inner">
                                         {humanized}
                                     </div>
 
@@ -329,8 +367,8 @@ export default function TextAnalyzer() {
                                                     </div>
                                                 </div>
                                                 <div className="p-6 rounded-2xl bg-brand-500/10 border border-brand-500/10 flex flex-col justify-center">
-                                                    <p className="text-sm font-semibold mb-1">{recheckResult.verdict}</p>
-                                                    <p className="text-xs opacity-60">Success! The text now passes through neural classifiers as human-written.</p>
+                                                    <p className="text-sm font-semibold mb-1">Re-analysis complete.</p>
+                                                    <p className="text-xs opacity-60">Verification finished. Review the new confidence scores and verdict above.</p>
                                                 </div>
                                             </div>
                                         )}
@@ -346,18 +384,18 @@ export default function TextAnalyzer() {
                     <div className="grid md:grid-cols-3 gap-6 mt-16 scale-95 opacity-80">
                         <div className="glass-card p-6 text-center space-y-2">
                             <Shield size={24} className="mx-auto text-brand-400 mb-2" />
-                            <h4 className="font-bold text-sm">RoBERTa Detection</h4>
-                            <p className="text-xs opacity-60">Neural pattern recognition trained on GPT-4, Claude 3.5, and Llama 3.2 outputs.</p>
+                            <h4 className="font-bold text-sm">DeBERTa-v3 Classifier</h4>
+                            <p className="text-xs opacity-60">Industry leading transformer model for deep semantic pattern detection in AI text.</p>
                         </div>
                         <div className="glass-card p-6 text-center space-y-2">
                             <BarChart3 size={24} className="mx-auto text-purple-400 mb-2" />
-                            <h4 className="font-bold text-sm">Statistical Entropy</h4>
-                            <p className="text-xs opacity-60">Analyzes burstiness, perplexity, and bigram repetition for forensic verification.</p>
+                            <h4 className="font-bold text-sm">GPT-2 Perplexity</h4>
+                            <p className="text-xs opacity-60">Analyzes information predictability. Low perplexity triggers high AI risk alerts.</p>
                         </div>
                         <div className="glass-card p-6 text-center space-y-2">
                             <Zap size={24} className="mx-auto text-yellow-400 mb-2" />
-                            <h4 className="font-bold text-sm">One-Click Stealth</h4>
-                            <p className="text-xs opacity-60">Automatically neutralize AI patterns using local Llama 3.2 rewrites.</p>
+                            <h4 className="font-bold text-sm">Burstiness & Entropy</h4>
+                            <p className="text-xs opacity-60">Measures sentence variety and vocabulary randomness to differentiate from human writing.</p>
                         </div>
                     </div>
                 )}

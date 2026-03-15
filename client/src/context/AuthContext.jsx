@@ -26,7 +26,14 @@ export function AuthProvider({ children }) {
 
     const login = (newToken) => {
         localStorage.setItem('token', newToken)
+        axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
         setToken(newToken)
+        try {
+            const payload = JSON.parse(atob(newToken.split('.')[1]))
+            setUser({ id: payload.id, email: payload.email, name: payload.name })
+        } catch {
+            logout()
+        }
     }
 
     const logout = () => {

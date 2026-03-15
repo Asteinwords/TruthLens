@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useDropzone } from 'react-dropzone'
-import { Upload, Zap, Eye, Image, Video, ShieldAlert } from 'lucide-react'
+import { Upload, Search, Eye, Image, Video, ShieldAlert } from 'lucide-react'
 import axios from 'axios'
 import AnalysisLoader from '../components/AnalysisLoader'
 import { useAuth } from '../context/AuthContext'
@@ -55,18 +55,18 @@ export default function MediaAnalysis() {
     if (analyzing) return <AnalysisLoader fileName={uploadedFile?.name} fileType={uploadedFile?.type} />
 
     return (
-        <div className="min-h-[calc(100vh-64px)] hero-bg grid-bg flex flex-col items-center justify-center py-12 px-4 relative">
-            <div className="max-w-3xl w-full text-center mb-10">
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6 glass-card border" style={{ borderColor: 'rgba(91,120,245,0.3)' }}>
+        <div className="min-h-[calc(100vh-64px)] hero-bg grid-bg flex flex-col items-center justify-center py-6 px-4 relative overflow-y-auto">
+            <div className="max-w-3xl w-full text-center mb-6">
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-4 glass-card border" style={{ borderColor: 'rgba(91,120,245,0.3)' }}>
                     <Eye size={14} className="text-brand-400" />
                     <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
                         Deep Vision Forensics Engine
                     </span>
                 </div>
-                <h1 className="text-4xl md:text-5xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
+                <h1 className="text-4xl md:text-5xl font-bold mb-3" style={{ color: 'var(--text-primary)' }}>
                     Media <span className="gradient-text">Analysis</span>
                 </h1>
-                <p className="text-lg max-w-xl mx-auto" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-base md:text-lg max-w-xl mx-auto" style={{ color: 'var(--text-secondary)' }}>
                     Upload an image or video to verify its authenticity using our multi-model neural and statistical forensic pipeline.
                 </p>
             </div>
@@ -74,7 +74,7 @@ export default function MediaAnalysis() {
             {/* Dropzone */}
             <div
                 {...getRootProps()}
-                className={`drop-zone w-full max-w-2xl cursor-pointer p-12 transition-all ${isDragActive ? 'active' : ''}`}
+                className={`drop-zone w-full max-w-2xl cursor-pointer p-8 md:p-10 transition-all ${isDragActive ? 'active' : ''}`}
                 onClick={(e) => {
                     if (!user) {
                         e.preventDefault()
@@ -119,7 +119,7 @@ export default function MediaAnalysis() {
                         }
                     }}>
                         <span className="flex items-center gap-2">
-                            <Zap size={16} /> Analyze Media
+                            <Search size={16} /> Analyze Media
                         </span>
                     </button>
                 </div>

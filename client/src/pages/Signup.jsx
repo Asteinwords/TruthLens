@@ -42,7 +42,7 @@ export default function Signup() {
     }
 
     return (
-        <div className="flex flex-col lg:flex-row min-h-[calc(100vh-64px)] w-full bg-white">
+        <div className="flex flex-col lg:flex-row min-h-screen w-full bg-white">
             {/* Branding Section (Dark Theme) */}
             <div className="w-full lg:w-1/2 relative bg-[#0a0b14] flex flex-col justify-center items-center py-12 lg:py-0 shrink-0 overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_40%,rgba(91,120,245,0.1)_0%,transparent_50%)]" />
@@ -65,11 +65,11 @@ export default function Signup() {
             </div>
 
             {/* Form Section (Light/White Theme) */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-12 shrink-0" style={{ background: 'var(--bg-primary)' }}>
+            <div className="w-full lg:w-1/2 flex items-center justify-center p-4 lg:p-8 shrink-0 overflow-y-auto" style={{ background: 'var(--bg-primary)' }}>
                 <div className="w-full max-w-md">
-                    <div className="bg-white/5 backdrop-blur-xl p-8 lg:p-10 rounded-3xl border shadow-2xl relative" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}>
+                    <div className="bg-white/5 backdrop-blur-xl p-6 lg:p-8 rounded-3xl border shadow-2xl relative" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}>
                         <h2 className="text-2xl lg:text-3xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>Create an account</h2>
-                        <p className="text-sm lg:text-base mb-8" style={{ color: 'var(--text-secondary)' }}>Sign up to start your forensic journey</p>
+                        <p className="text-sm lg:text-base mb-5" style={{ color: 'var(--text-secondary)' }}>Sign up to start your forensic journey</p>
 
                         <div className="flex justify-center mb-4">
                             <GoogleLogin 
@@ -82,7 +82,7 @@ export default function Signup() {
                             />
                         </div>
 
-                        <div className="relative my-4 lg:my-6">
+                        <div className="relative my-4">
                             <div className="absolute inset-0 flex items-center">
                                 <div className="w-full border-t border-gray-200" style={{ borderColor: 'var(--border-color)' }}></div>
                             </div>
@@ -91,7 +91,7 @@ export default function Signup() {
                             </div>
                         </div>
 
-                        <form onSubmit={submit} className="space-y-5">
+                        <form onSubmit={submit} className="space-y-4">
                             <div>
                                 <label className="text-sm font-medium mb-1.5 block" style={{ color: 'var(--text-primary)' }}>Full Name <span className="text-red-500">*</span></label>
                                 <input name="name" type="text" value={form.name} onChange={handle} className="w-full px-4 py-3 rounded-xl border bg-transparent outline-none transition-all focus:border-brand-500 focus:ring-1 focus:ring-brand-500" style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} placeholder="Jane Smith" required />
@@ -118,7 +118,7 @@ export default function Signup() {
                             </button>
                         </form>
 
-                        <p className="text-center text-sm mt-8" style={{ color: 'var(--text-secondary)' }}>
+                        <p className="text-center text-sm mt-5" style={{ color: 'var(--text-secondary)' }}>
                             Already have an account?{' '}
                             <Link to="/login" className="text-brand-500 hover:text-brand-600 font-semibold underline-offset-4 hover:underline">Sign in</Link>
                         </p>
