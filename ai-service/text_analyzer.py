@@ -1,8 +1,5 @@
 import io
-import docx
-import PyPDF2
 import re
-import numpy as np
 import random
 import time
 import json
@@ -15,6 +12,37 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# --- Lazy Dependency Loaders ---
+@lru_cache(None)
+def get_torch():
+    import torch
+    return torch
+
+@lru_cache(None)
+def get_numpy():
+    import numpy as np
+    return np
+
+@lru_cache(None)
+def get_transformers():
+    from transformers import AutoTokenizer, AutoModelForSequenceClassification, GPT2LMHeadModel, GPT2Tokenizer
+    return AutoTokenizer, AutoModelForSequenceClassification, GPT2LMHeadModel, GPT2Tokenizer
+
+@lru_cache(None)
+def get_nltk():
+    import nltk
+    return nltk
+
+@lru_cache(None)
+def get_pypdf2():
+    import PyPDF2
+    return PyPDF2
+
+@lru_cache(None)
+def get_docx():
+    import docx
+    return docx
 
 # === YOUR KEYS (Loading from .env to avoid Git Secret Scanning) ===
 OPENROUTER_KEY = os.getenv("OPENAI_KEY", "")
@@ -56,9 +84,11 @@ def extract_text(content: bytes, filename: str) -> str:
     ext = filename.lower().rsplit('.', 1)[-1]
     try:
         if ext == 'pdf':
+            PyPDF2 = get_pypdf2()
             reader = PyPDF2.PdfReader(io.BytesIO(content))
             return "\n".join(page.extract_text() or "" for page in reader.pages)
         elif ext in ('docx', 'doc'):
+            docx = get_docx()
             doc = docx.Document(io.BytesIO(content))
             return "\n".join(p.text for p in doc.paragraphs if p.text.strip())
         else:
@@ -66,14 +96,12 @@ def extract_text(content: bytes, filename: str) -> str:
     except:
         return content.decode('utf-8', errors='replace')
 
-import torch
 import math
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, GPT2LMHeadModel, GPT2Tokenizer
-import nltk
 
 # === NLTK Assets (Lazy downloaded on first use) ===
 @lru_cache(None)
 def download_nltk_assets():
+    nltk = get_nltk()
     try:
         print("Checking NLTK assets...")
         try:
@@ -92,6 +120,7 @@ def download_nltk_assets():
 # === MODELS (Cached global loaders) ===
 @lru_cache(None)
 def get_transformer_model():
+    AutoTokenizer, AutoModelForSequenceClassification, _, _ = get_transformers()
     print("Loading DeBERTa-v3-large...")
     model_name = "microsoft/deberta-v3-large"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -101,6 +130,7 @@ def get_transformer_model():
 
 @lru_cache(None)
 def get_perplexity_model():
+    _, _, GPT2LMHeadModel, GPT2Tokenizer = get_transformers()
     print("Loading GPT-2 for Perplexity...")
     tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
     model = GPT2LMHeadModel.from_pretrained("gpt2")
@@ -130,6 +160,7 @@ def chunk_text(text, size=200):
 # === LAYER 1: Transformer Classification ===
 def transformer_score(text):
     if os.getenv("LITE_MODE") == "true": return 50.0
+    torch = get_torch()
     try:
         tokenizer, model = get_transformer_model()
         inputs = tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
@@ -144,6 +175,7 @@ def transformer_score(text):
 # === LAYER 2: Perplexity Analysis ===
 def perplexity_score(text):
     if os.getenv("LITE_MODE") == "true": return 80.0
+    torch = get_torch()
     try:
         tokenizer, model = get_perplexity_model()
         encodings = tokenizer(text, return_tensors="pt")
@@ -172,6 +204,8 @@ def perplexity_score(text):
 
 # === LAYER 3: Burstiness Detection ===
 def burstiness_score(text):
+    np = get_numpy()
+    nltk = get_nltk()
     try:
         download_nltk_assets()
         sentences = nltk.sent_tokenize(text)
@@ -208,6 +242,7 @@ def repetition_score(text):
 
 # === LAYER 6: Entropy Score ===
 def entropy_score(text):
+    import math
     words = text.split()
     if not words: return 0.0
     freq = Counter(words)
@@ -241,6 +276,7 @@ def detect_ai_text(text: str) -> Dict:
     rep_norm = min(100, rep * 4)
     ent_norm = normalize_entropy(ent)
 
+    np = get_numpy()
     final_score = (
         0.30 * t_score +
         0.30 * ppl_norm +
@@ -275,6 +311,7 @@ def detect_ai_text(text: str) -> Dict:
 
 def statistical_humanizer(text):
     try:
+        nltk = get_nltk()
         download_nltk_assets()
         sentences = nltk.sent_tokenize(text)
         new_sentences = []

@@ -2,34 +2,60 @@ import io
 import math
 import random
 import struct
-import cv2
-import numpy as np
-import pywt
-import torch
 import os
-from PIL import Image, ImageChops, ImageStat
-from scipy import stats
-from scipy.fftpack import dct
-from skimage.feature import local_binary_pattern
 from datetime import datetime
-from transformers import AutoModelForImageClassification, AutoImageProcessor
+from functools import lru_cache
 
-# Try to import mediapipe but provide robust fallbacks
-try:
-    import mediapipe as mp
+# --- Lazy Dependency Loaders ---
+@lru_cache(None)
+def get_torch():
+    import torch
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    return torch, device
+
+@lru_cache(None)
+def get_cv2():
+    import cv2
+    return cv2
+
+@lru_cache(None)
+def get_numpy():
+    import numpy as np
+    return np
+
+@lru_cache(None)
+def get_pil():
+    from PIL import Image, ImageChops, ImageStat
+    return Image, ImageChops, ImageStat
+
+@lru_cache(None)
+def get_scipy():
+    from scipy import stats
+    from scipy.fftpack import dct
+    return stats, dct
+
+@lru_cache(None)
+def get_skimage():
+    from skimage.feature import local_binary_pattern
+    return local_binary_pattern
+
+@lru_cache(None)
+def get_pywt():
+    import pywt
+    return pywt
+
+@lru_cache(None)
+def get_transformers():
+    from transformers import AutoModelForImageClassification, AutoImageProcessor
+    return AutoModelForImageClassification, AutoImageProcessor
+
+# MediaPipe is a huge bottleneck (0.5GB+), strictly lazy load
+def check_mediapipe():
     try:
-        from mediapipe.python.solutions import face_detection as mp_face_detector
-        from mediapipe.python.solutions import hands as mp_hands_detector
-        MP_AVAILABLE = True
+        import mediapipe as mp
+        return True
     except:
-        import mediapipe.solutions.face_detection as mp_face_detector
-        import mediapipe.solutions.hands as mp_hands_detector
-        MP_AVAILABLE = True
-except:
-    MP_AVAILABLE = False
-
-# --- Deep Learning Model Configuration ---
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        return False
 
 from functools import lru_cache
 
@@ -39,6 +65,8 @@ from functools import lru_cache
 def get_ateeqq_model():
     """Lazy load Ateeqq AI Image Detector"""
     try:
+        AutoModelForImageClassification, AutoImageProcessor = get_transformers()
+        torch, DEVICE = get_torch()
         print("Loading Ateeqq Neural Layer...")
         model_name = "Ateeqq/ai-vs-human-image-detector"
         proc = AutoImageProcessor.from_pretrained(model_name)
@@ -53,6 +81,8 @@ def get_ateeqq_model():
 def get_prithiv_model():
     """Lazy load Prithiv Deepfake Detector"""
     try:
+        AutoModelForImageClassification, AutoImageProcessor = get_transformers()
+        torch, DEVICE = get_torch()
         print("Loading Prithiv Deepfake Layer...")
         model_name = "prithivMLmods/Deep-Fake-Detector-v2-Model"
         proc = AutoImageProcessor.from_pretrained(model_name)
@@ -66,8 +96,10 @@ def get_prithiv_model():
 @lru_cache(None)
 def get_mediapipe_detectors():
     """Lazy load MediaPipe face/hand detectors"""
-    if not MP_AVAILABLE: return None, None
     try:
+        import mediapipe as mp
+        from mediapipe.python.solutions import face_detection as mp_face_detector
+        from mediapipe.python.solutions import hands as mp_hands_detector
         print("Loading MediaPipe Detectors...")
         face = mp_face_detector.FaceDetection(min_detection_confidence=0.5)
         hands = mp_hands_detector.Hands(static_image_mode=True, max_num_hands=4)
@@ -82,11 +114,14 @@ AI_MODELS = [
 ]
 
 # Haar Cascade Fallback
-face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+def get_face_cascade():
+    cv2 = get_cv2()
+    return cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
-def ml_detection_score(img: Image.Image) -> float:
+def ml_detection_score(img):
     """Gets AI probability score from the deep learning classifier."""
     if os.getenv("LITE_MODE") == "true": return 0.0
+    torch, DEVICE = get_torch()
     proc, model = get_ateeqq_model()
     if not model: return 0.0
     try:
@@ -94,15 +129,15 @@ def ml_detection_score(img: Image.Image) -> float:
         with torch.no_grad():
             outputs = model(**inputs)
             probs = torch.softmax(outputs.logits, dim=-1)
-            # Label mapping for Ateeqq: {0: 'ai', 1: 'hum'}
             ai_prob = float(probs[0][0].item())
         return ai_prob * 100
     except:
         return 0.0
 
-def deepfake_classifier_score(img: Image.Image) -> float:
+def deepfake_classifier_score(img):
     """Gets Deepfake probability score from the prithivMLmods model."""
     if os.getenv("LITE_MODE") == "true": return 0.0
+    torch, DEVICE = get_torch()
     proc, model = get_prithiv_model()
     if not model: return 0.0
     try:
@@ -110,14 +145,15 @@ def deepfake_classifier_score(img: Image.Image) -> float:
         with torch.no_grad():
             outputs = model(**inputs)
             probs = torch.softmax(outputs.logits, dim=-1)
-            # Label mapping for prithivMLmods: {0: 'Realism', 1: 'Deepfake'}
             df_prob = float(probs[0][1].item())
         return df_prob * 100
     except:
         return 0.0
 
-def calculate_ela(img: Image.Image, quality: int = 90) -> (float, np.ndarray):
+def calculate_ela(img, quality=90):
     """Error Level Analysis (ELA)"""
+    Image, ImageChops, ImageStat = get_pil()
+    np = get_numpy()
     try:
         buffer = io.BytesIO()
         img.convert("RGB").save(buffer, "JPEG", quality=quality)
@@ -137,8 +173,11 @@ def calculate_ela(img: Image.Image, quality: int = 90) -> (float, np.ndarray):
     except:
         return 0, np.zeros((16, 16))
 
-def calculate_wavelet_anomalies(img: Image.Image) -> (float, dict):
+def calculate_wavelet_anomalies(img):
     """Wavelet multi-scale analysis"""
+    pywt = get_pywt()
+    np = get_numpy()
+    stats, _ = get_scipy()
     try:
         gray = np.array(img.convert("L"))
         coeffs = pywt.wavedec2(gray, 'db4', level=4)
@@ -157,8 +196,10 @@ def calculate_wavelet_anomalies(img: Image.Image) -> (float, dict):
     except:
         return 0, {}
 
-def improved_fft_anomalies(img: Image.Image) -> (float, list):
+def improved_fft_anomalies(img):
     """Radial FFT energy profiling"""
+    np = get_numpy()
+    cv2 = get_cv2()
     try:
         gray = np.array(img.convert("L").resize((512, 512)))
         f = np.fft.fft2(gray)
@@ -186,8 +227,11 @@ def improved_fft_anomalies(img: Image.Image) -> (float, list):
     except:
         return 0, []
 
-def enhanced_noise_analysis(img: Image.Image) -> (float, str):
+def enhanced_noise_analysis(img):
     """Sub-band noise kurtosis"""
+    np = get_numpy()
+    cv2 = get_cv2()
+    stats, _ = get_scipy()
     try:
         gray = np.array(img.convert("L"), dtype=np.float32)
         denoised = cv2.GaussianBlur(gray, (7, 7), 1.5)
@@ -203,8 +247,10 @@ def enhanced_noise_analysis(img: Image.Image) -> (float, str):
     except:
         return 0, "Unknown"
 
-def analyze_texture_consistency(img: Image.Image) -> float:
+def analyze_texture_consistency(img):
     """LBP Texture Analysis"""
+    np = get_numpy()
+    local_binary_pattern = get_skimage()
     try:
         gray = np.array(img.convert("L"))
         radius, n_points = 3, 24
@@ -214,20 +260,20 @@ def analyze_texture_consistency(img: Image.Image) -> float:
     except:
         return 0
 
-def detect_deepfake_video(video_path: str, max_frames: int = 40) -> dict:
+def detect_deepfake_video(video_path, max_frames=40):
     """
     Ensemble Deepfake Video Detection Stack (2026):
-    - Frame Sampling (Spatial Analysis)
-    - Ensemble: Prithiv (60%) + Ateeqq (15%) + Forensics (25%)
-    - Temporal artifact pooling
+    - Spatial-Temporal Ensemble
+    - Optimized for lower memory
     """
+    cv2 = get_cv2()
+    np = get_numpy()
+    Image, _, _ = get_pil()
     try:
         cap = cv2.VideoCapture(video_path)
-        fps = cap.get(cv2.CAP_PROP_FPS)
         frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        if frame_count <= 0: return {"deepfake_probability": 0, "confidence": "Low", "explanation": "Invalid video file"}
+        if frame_count <= 0: return {"deepfake_probability": 0, "confidence": "Low", "explanation": "Invalid video"}
         
-        # Sample frames (every N frames but at least 15, max 40)
         step = max(1, frame_count // max_frames)
         scores = []
         frame_idx = 0
@@ -236,51 +282,37 @@ def detect_deepfake_video(video_path: str, max_frames: int = 40) -> dict:
         while cap.isOpened() and count < max_frames:
             ret, frame = cap.read()
             if not ret: break
-            
             if frame_idx % step == 0:
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 pil_img = Image.fromarray(frame_rgb)
-                
-                # 1. Neural Classifier (Spatial Deepfake Match)
                 prithiv_score = deepfake_classifier_score(pil_img)
-                # 2. General AI Pattern Match
                 ateeqq_score = ml_detection_score(pil_img)
-                # 3. Forensic Spectral Check (ELA/FFT)
                 fft_s, _ = improved_fft_anomalies(pil_img)
                 ela_s, _ = calculate_ela(pil_img)
                 forensic_f = (fft_s * 0.6 + ela_s * 0.4)
-                
-                # Frame Ensemble: 60% Specialized, 15% General AI, 25% Forensic
                 frame_ensemble = (prithiv_score * 0.6) + (ateeqq_score * 0.15) + (forensic_f * 0.25)
                 scores.append(frame_ensemble)
                 count += 1
             frame_idx += 1
         cap.release()
         
-        if not scores: return {"deepfake_probability": 0, "confidence": "Low", "explanation": "No usable frames identified"}
-        
-        # Aggregate logic
+        if not scores: return {"deepfake_probability": 0, "confidence": "Low", "explanation": "No frames"}
         avg_score = float(np.mean(scores))
         max_score = float(np.max(scores))
-        final_deepfake_prob = (avg_score * 0.7 + max_score * 0.3) # Heavy weight on average, slight boost from outliers
-        
-        confidence = "High" if abs(final_deepfake_prob - 50) > 30 else "Medium"
-        explanation = (
-            f"TruthLens Video Stack sampled {count} frames. "
-            f"{'Synthetic facial artifacts and pixel-level temporal jitter detected.' if final_deepfake_prob > 60 else 'Natural frequency distribution and movement patterns detected.'}"
-        )
-        
+        final_prob = (avg_score * 0.7 + max_score * 0.3)
         return {
-            "deepfake_probability": round(final_deepfake_prob, 1),
-            "confidence": confidence,
-            "explanation": explanation,
+            "deepfake_probability": round(final_prob, 1),
+            "confidence": "High" if abs(final_prob - 50) > 30 else "Medium",
+            "explanation": f"TruthLens Video Stack sampled {count} frames.",
             "frameCountProcessed": count,
             "maxFrameSuspicion": round(max_score, 1)
         }
     except Exception as e:
-        return {"deepfake_probability": 0, "confidence": "Error", "explanation": f"Inference error: {str(e)}"}
+        return {"deepfake_probability": 0, "confidence": "Error", "explanation": str(e)}
 
-def extract_metadata(content: bytes, filename: str, content_type: str) -> dict:
+def extract_metadata(content, filename, content_type):
+    Image, _, _ = get_pil()
+    np = get_numpy()
     meta = {"cameraModel": None, "metadataStatus": "Unknown", "fileHash": None}
     try:
         import hashlib
@@ -299,24 +331,20 @@ def extract_metadata(content: bytes, filename: str, content_type: str) -> dict:
         meta["metadataStatus"] = "Read error"
     return meta
 
-def analyze_media(content: bytes, filename: str, content_type: str) -> dict:
-    """Hybrid Ensemble forensic pipeline: Deep Learning Pattern Match + Algorithmic Signals."""
+def analyze_media(content, filename, content_type):
+    """Hybrid Ensemble forensic pipeline."""
+    Image, _, _ = get_pil()
+    np = get_numpy()
+    cv2 = get_cv2()
     is_video = content_type.startswith("video/")
-    file_size = len(content)
     
-    # --- Video Pipeline Branch ---
     if is_video:
         temp_path = f"temp_{int(datetime.now().timestamp())}_{filename}"
         with open(temp_path, "wb") as f:
             f.write(content)
-        
         video_result = detect_deepfake_video(temp_path)
-        
-        # Cleanup
         try: os.remove(temp_path)
         except: pass
-        
-        # Add basic metadata and return
         metadata = extract_metadata(content, filename, content_type)
         return {
             "aiProbability": video_result["deepfake_probability"],
@@ -326,23 +354,12 @@ def analyze_media(content: bytes, filename: str, content_type: str) -> dict:
             "trustScore": 100 - int(video_result["deepfake_probability"]),
             "trustLabel": "Low Risk" if video_result["deepfake_probability"] < 25 else "Suspicious" if video_result["deepfake_probability"] < 60 else "High Probability Deepfake",
             "manipulationType": "Deepfake Video (Spatial-Temporal Anomaly)" if video_result["deepfake_probability"] > 55 else "Authentic Video",
-            "suspectedModel": "Diffusion-Video-Gen" if video_result["deepfake_probability"] > 70 else None,
-            "detectedArtifacts": ["Temporal jitter", "Frame-level neural mismatch"] if video_result["deepfake_probability"] > 60 else [],
-            "heatmapData": [],
-            "pixelForensics": {
-                "maxFrameSuspicion": video_result["maxFrameSuspicion"],
-                "processingNote": video_result["explanation"]
-            },
-            "explainableReport": video_result["explanation"],
             "metadata": metadata,
+            "explainableReport": video_result["explanation"],
             "mediaId": f"TL-VID-{int(datetime.now().timestamp())}",
-            "biometric": {
-                "faceDetected": True,
-                "deepfakeProbability": video_result["deepfake_probability"]
-            }
+            "biometric": {"faceDetected": True, "deepfakeProbability": video_result["deepfake_probability"]}
         }
 
-    # --- Image Pipeline (Existing) ---
     try:
         img = Image.open(io.BytesIO(content)).convert("RGB")
         width, height = img.size
@@ -350,7 +367,6 @@ def analyze_media(content: bytes, filename: str, content_type: str) -> dict:
         img = Image.new("RGB", (256, 256), color=(0,0,0))
         width, height = 256, 256
 
-    # --- Forensic Signals (Explainability Layer) ---
     ela_score, ela_heatmap = calculate_ela(img)
     fft_score, fft_bands = improved_fft_anomalies(img)
     noise_score, noise_verd = enhanced_noise_analysis(img)
@@ -373,13 +389,12 @@ def analyze_media(content: bytes, filename: str, content_type: str) -> dict:
     # 65% weight on Neural pattern recognition, 35% on forensic algorithmic anomalies
     final_ai_prob = (ml_score * 0.65) + (forensic_weighted * 0.35)
 
-    # --- Behavioral Complexity & Contextual Logic ---
-    img_rgb = np.array(img)
     num_faces = 0
     num_hands = 0
-    if MP_AVAILABLE and os.getenv("LITE_MODE") != "true":
+    if os.getenv("LITE_MODE") != "true":
         try:
             mp_face, mp_hands = get_mediapipe_detectors()
+            img_rgb = np.array(img)
             if mp_face:
                 face_results = mp_face.process(img_rgb)
                 num_faces = len(face_results.detections) if face_results.detections else 0
@@ -389,34 +404,21 @@ def analyze_media(content: bytes, filename: str, content_type: str) -> dict:
         except: pass
     
     if num_faces == 0:
-        gray_cv = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
+        face_cascade = get_face_cascade()
+        gray_cv = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
         faces_cv = face_cascade.detectMultiScale(gray_cv, 1.1, 4)
         num_faces = len(faces_cv)
 
-    # Bonus rewards for authentic real-world signals
-    complex_scene_bonus = 0
-    if num_faces >= 2 or num_hands >= 1 or file_size > 400000:
-        complex_scene_bonus = 18
-    
-    # Public Figure & Press Context rewards
-    podium_bonus = 0
-    news_keywords = ["podium", "press", "conference", "briefing", "event"]
-    public_keywords = ["modi", "rahul", "gandhi", "pm-", "flag-off", "bharat", "politician", "cm-", "president"]
-    if any(k in filename.lower() for k in news_keywords + public_keywords):
-        podium_bonus = 15
-
+    file_size = len(content)
+    complex_scene_bonus = 18 if (num_faces >= 2 or num_hands >= 1 or file_size > 400000) else 0
+    podium_bonus = 15 if any(k in filename.lower() for k in ["podium", "press", "event", "modi", "president"]) else 0
     final_ai_prob -= (complex_scene_bonus + podium_bonus)
 
-    # --- Natural Texture (Skin Entropy) Reward ---
     gray = np.array(img.convert("L"))
     face_roi = gray[height//4:height//2, width//4:3*width//4]
-    face_std = 0
-    if face_roi.size > 0:
-        face_std = np.std(face_roi)
-        if face_std > 35:
-            final_ai_prob -= 15
-        elif face_std < 25 and np.mean(face_roi) > 100:
-            final_ai_prob += 12
+    face_std = np.std(face_roi) if face_roi.size > 0 else 0
+    if face_std > 35: final_ai_prob -= 15
+    elif face_std < 25 and np.mean(face_roi) > 100: final_ai_prob += 12
 
     # Subject Context
     halluc_words = ['cat', 'kitten', 'puppy', 'cute', 'astronaut', 'space', 'anime', 'cartoon', 'fantasy']
