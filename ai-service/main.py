@@ -1,3 +1,5 @@
+import os
+import uvicorn
 from analyzer import analyze_media
 from text_analyzer import analyze_text, humanize_text
 from fastapi import FastAPI, File, UploadFile, Form
@@ -44,3 +46,7 @@ async def analyze_text_endpoint(file: UploadFile = File(None), text: str = Form(
 async def humanize_endpoint(text: str = Form(...)):
     humanized = humanize_text(text)
     return {"humanizedText": humanized}
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8002))
+    uvicorn.run("main:app", host="0.0.0.0", port=port)
