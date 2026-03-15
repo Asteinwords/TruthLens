@@ -391,14 +391,14 @@ def analyze_media(content, filename, content_type):
     num_hands = 0
     try:
         mp_face, mp_hands = get_mediapipe_detectors()
-            img_rgb = np.array(img)
-            if mp_face:
-                face_results = mp_face.process(img_rgb)
-                num_faces = len(face_results.detections) if face_results.detections else 0
-            if mp_hands:
-                hand_results = mp_hands.process(img_rgb)
-                num_hands = len(hand_results.multi_hand_landmarks) if hand_results.multi_hand_landmarks else 0
-        except: pass
+        img_rgb = np.array(img)
+        if mp_face:
+            face_results = mp_face.process(img_rgb)
+            num_faces = len(face_results.detections) if face_results.detections else 0
+        if mp_hands:
+            hand_results = mp_hands.process(img_rgb)
+            num_hands = len(hand_results.multi_hand_landmarks) if hand_results.multi_hand_landmarks else 0
+    except: pass
     
     if num_faces == 0:
         face_cascade = get_face_cascade()
