@@ -159,7 +159,6 @@ def chunk_text(text, size=200):
 
 # === LAYER 1: Transformer Classification ===
 def transformer_score(text):
-    if os.getenv("LITE_MODE") == "true": return 50.0
     torch = get_torch()
     try:
         tokenizer, model = get_transformer_model()
@@ -174,7 +173,6 @@ def transformer_score(text):
 
 # === LAYER 2: Perplexity Analysis ===
 def perplexity_score(text):
-    if os.getenv("LITE_MODE") == "true": return 80.0
     torch = get_torch()
     try:
         tokenizer, model = get_perplexity_model()

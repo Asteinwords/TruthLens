@@ -120,7 +120,6 @@ def get_face_cascade():
 
 def ml_detection_score(img):
     """Gets AI probability score from the deep learning classifier."""
-    if os.getenv("LITE_MODE") == "true": return 0.0
     torch, DEVICE = get_torch()
     proc, model = get_ateeqq_model()
     if not model: return 0.0
@@ -136,7 +135,6 @@ def ml_detection_score(img):
 
 def deepfake_classifier_score(img):
     """Gets Deepfake probability score from the prithivMLmods model."""
-    if os.getenv("LITE_MODE") == "true": return 0.0
     torch, DEVICE = get_torch()
     proc, model = get_prithiv_model()
     if not model: return 0.0
@@ -386,23 +384,13 @@ def analyze_media(content, filename, content_type):
     )
 
     # --- Ensemble Final Score (State-of-the-Art 2026 methodology) ---
-    is_lite = os.getenv("LITE_MODE") == "true"
-    
-    if is_lite:
-        # In Lite Mode, neural detection is skipped to save RAM.
-        # We rebalance forensic signals to 90% of the total score.
-        final_ai_prob = forensic_weighted * 1.8 
-        # Add a minimum threshold for suspected AI if forensics detect anything.
-        if forensic_weighted > 15: final_ai_prob = max(final_ai_prob, 42.0)
-    else:
-        # 65% weight on Neural pattern recognition, 35% on forensic algorithmic anomalies
-        final_ai_prob = (ml_score * 0.65) + (forensic_weighted * 0.35)
+    # 65% weight on Neural pattern recognition, 35% on forensic algorithmic anomalies
+    final_ai_prob = (ml_score * 0.65) + (forensic_weighted * 0.35)
 
     num_faces = 0
     num_hands = 0
-    if os.getenv("LITE_MODE") != "true":
-        try:
-            mp_face, mp_hands = get_mediapipe_detectors()
+    try:
+        mp_face, mp_hands = get_mediapipe_detectors()
             img_rgb = np.array(img)
             if mp_face:
                 face_results = mp_face.process(img_rgb)
