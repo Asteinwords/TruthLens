@@ -58,22 +58,29 @@ async def humanize_endpoint(text: str = Form(...)):
 def warm_models():
     """Background thread to pre-load models for snappy first-request response."""
     import time
-    from analyzer import get_ateeqq_model, get_prithiv_model, get_mediapipe_detectors
-    from text_analyzer import get_transformer_model, get_perplexity_model
+    from analyzer import get_ateeqq_model
+    from text_analyzer import get_transformer_model
     
-    print("🚀 Starting background model warming...")
-    time.sleep(2) # Give uvicorn a head start to bind port
-    try: get_ateeqq_model()
-    except: pass
-    try: get_prithiv_model()
-    except: pass
-    try: get_transformer_model()
-    except: pass
-    try: get_perplexity_model()
-    except: pass
-    try: get_mediapipe_detectors()
-    except: pass
-    print("✅ Model warming sequence complete.")
+    print("🚀 Starting staggered model warming (Safe-Boot Mode)...")
+    time.sleep(8) # Wait for Render to definitely see the port as open
+    
+    try: 
+        print("Warming Layer 1: Ateeqq Neural (Image)...")
+        get_ateeqq_model()
+        print("✅ Layer 1 Ready.")
+        time.sleep(5) 
+    except Exception as e: 
+        print(f"⚠️ Layer 1 Warming Failed: {e}")
+    
+    try: 
+        print("Warming Layer 2: DeBERTa Neural (Text)...")
+        get_transformer_model()
+        print("✅ Layer 2 Ready.")
+        time.sleep(5)
+    except Exception as e: 
+        print(f"⚠️ Layer 2 Warming Failed: {e}")
+
+    print("✅ Staggered warming sequence complete. Server is active.")
 
 if __name__ == "__main__":
     import threading
