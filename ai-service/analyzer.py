@@ -408,13 +408,42 @@ def analyze_media(content, filename, content_type):
         faces_cv = face_cascade.detectMultiScale(gray_cv, 1.1, 4)
         num_faces = len(faces_cv)
 
+    # --- Face-Specific Texture Verification (Studio vs AI Check) ---
+    face_texture_bonus = 0
+    try:
+        gray = np.array(img.convert("L"))
+        # Focus on central face region if detected, otherwise center 50%
+        if num_faces > 0:
+            face_roi = gray[height//4:height//2, width//4:3*width//4]
+            face_std = np.std(face_roi) if face_roi.size > 0 else 0
+            # High frequency details/pores in skin suggest authentic studio photo
+            if face_std > 35: face_texture_bonus -= 20 
+            # Extreme smoothness in bright areas suggests AI generation
+            elif face_std < 22 and np.mean(face_roi) > 110: face_texture_bonus += 15
+    except: pass
+
     metadata = extract_metadata(content, filename, content_type)
     if metadata["metadataStatus"] in ["Stripped", "Modified"]:
         final_ai_prob += 5
     
-    # Sensitivity Floor (If any neural model is very high, trust it)
-    if max(ateeqq_score, prithiv_score) > 85:
-        final_ai_prob = max(final_ai_prob, max(ateeqq_score, prithiv_score))
+    # --- The "Forensic Veto" Logic ---
+    # If structural forensics (ELA, FFT, Wavelet) are all extremely low, 
+    # the neural model is likely hallucinating on studio lighting.
+    forensic_sum = ela_score + (fft_score * 0.5) + noise_score
+    if forensic_sum < 15:
+        final_ai_prob *= 0.7  # 30% reduction for clean structural forensics
+        final_ai_prob += face_texture_bonus
+    else:
+        final_ai_prob += face_texture_bonus
+
+    # Sensitivity Floor (Refined)
+    # Require at least one forensic OR texture signal to trust a 90%+ neural verdict
+    max_neural = max(ateeqq_score, prithiv_score)
+    if max_neural > 88:
+        if forensic_sum > 10 or face_texture_bonus > 10:
+            final_ai_prob = max(final_ai_prob, max_neural)
+        else:
+            final_ai_prob = max(final_ai_prob, max_neural * 0.85) # Dampen "hallucinations"
         
     ai_probability = round(max(5.0, min(98.5, final_ai_prob)), 1)
     human_probability = round(100 - ai_probability, 1)
@@ -430,6 +459,12 @@ def analyze_media(content, filename, content_type):
     if ela_score > 42: artifacts.append("JPEG compression mismatch (ELA)")
     if fft_score > 68: artifacts.append("Suspicious FFT frequency ring detected")
     if wavelet_score > 62: artifacts.append("Multi-scale wavelet inconsistencies")
+    
+    # UI Transparency for Calibration
+    if forensic_sum < 15 and max(ateeqq_score, prithiv_score) > 70:
+        artifacts.append("Forensic Signal: Authentic structural integrity (Score Dampened)")
+    if face_texture_bonus < -10:
+        artifacts.append("Biometric Signal: High skin detail detected (Verified Human Texture)")
 
     return {
         "aiProbability": ai_probability,
@@ -446,7 +481,7 @@ def analyze_media(content, filename, content_type):
             "noiseDistribution": noise_verd,
             "waveletAnomaly": wavelet_info.get("score"),
             "mlConfidence": round(max(ateeqq_score, prithiv_score), 1),
-            "skinTextureScore": round(100 - (65 if texture_score > 50 else 42), 1),
+            "skinTextureScore": round(max(0, min(100, face_std * 2.5 if 'face_std' in locals() else 50)), 1),
             "ganFingerprint": "Detected" if fft_score > 75 else "Not detected",
             "edgeIntegrity": "Natural" if texture_score < 50 else "Processed"
         },
