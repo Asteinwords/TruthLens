@@ -1,7 +1,6 @@
 import os
 import uvicorn
-from analyzer import analyze_media
-from text_analyzer import analyze_text, humanize_text
+# Analysis imports moved inside endpoints for Ultra-Fast Boot
 from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -30,12 +29,14 @@ def health():
 
 @app.post("/analyze")
 async def analyze(file: UploadFile = File(...)):
+    from analyzer import analyze_media
     content = await file.read()
     result = analyze_media(content, file.filename, file.content_type)
     return result
 
 @app.post("/text/analyze")
 async def analyze_text_endpoint(file: UploadFile = File(None), text: str = Form(None)):
+    from text_analyzer import analyze_text
     if file:
         content = await file.read()
         filename = file.filename
@@ -50,6 +51,7 @@ async def analyze_text_endpoint(file: UploadFile = File(None), text: str = Form(
 
 @app.post("/text/humanize")
 async def humanize_endpoint(text: str = Form(...)):
+    from text_analyzer import humanize_text
     humanized = humanize_text(text)
     return {"humanizedText": humanized}
 

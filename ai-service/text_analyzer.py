@@ -7,7 +7,6 @@ import os
 from collections import Counter
 from functools import lru_cache
 from typing import Dict
-from openai import OpenAI
 from tenacity import retry, stop_after_attempt, wait_exponential
 from dotenv import load_dotenv
 
@@ -49,11 +48,14 @@ OPENROUTER_KEY = os.getenv("OPENAI_KEY", "")
 GROQ_KEY       = os.getenv("GROQ_KEY", "")
 TOGETHER_KEY   = os.getenv("TOGETHER_KEY", "")
 
-PROVIDERS = [
-    {"name": "Groq",      "client": OpenAI(base_url="https://api.groq.com/openai/v1", api_key=GROQ_KEY),      "models": ["llama-3.2-3b-instruct"]},
-    {"name": "OpenRouter","client": OpenAI(base_url="https://openrouter.ai/api/v1", api_key=OPENROUTER_KEY), "models": ["meta-llama/llama-3.2-3b-instruct:free"]},
-    {"name": "Together",  "client": OpenAI(base_url="https://api.together.xyz/v1", api_key=TOGETHER_KEY),    "models": ["meta-llama/Llama-3.2-3B-Instruct-Turbo"]},
-]
+@lru_cache(None)
+def get_providers():
+    from openai import OpenAI
+    return [
+        {"name": "Groq",      "client": OpenAI(base_url="https://api.groq.com/openai/v1", api_key=GROQ_KEY),      "models": ["llama-3.2-3b-instruct"]},
+        {"name": "OpenRouter","client": OpenAI(base_url="https://openrouter.ai/api/v1", api_key=OPENROUTER_KEY), "models": ["meta-llama/llama-3.2-3b-instruct:free"]},
+        {"name": "Together",  "client": OpenAI(base_url="https://api.together.xyz/v1", api_key=TOGETHER_KEY),    "models": ["meta-llama/Llama-3.2-3B-Instruct-Turbo"]},
+    ]
 
 # === INSANELY STRONG 3-PASS HUMANIZER PROMPT ===
 def get_humanizer_prompt(stage: int):
@@ -348,7 +350,7 @@ def humanize_text(text: str) -> str:
     for stage in range(1, 4):
         prompt = get_humanizer_prompt(stage).format(text=current)
 
-        shuffled_providers = PROVIDERS[:]
+        shuffled_providers = get_providers()[:]
         random.shuffle(shuffled_providers)
 
         success = False
