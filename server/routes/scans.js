@@ -24,7 +24,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         try {
             const aiRes = await axios.post(`${process.env.AI_SERVICE_URL}/analyze`, form, {
                 headers: form.getHeaders(),
-                timeout: 120000,
+                timeout: 30000,
             })
             analysis = aiRes.data
         } catch (aiErr) {

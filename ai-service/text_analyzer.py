@@ -44,18 +44,16 @@ def get_docx():
     return docx
 
 # === YOUR KEYS (Loading from .env to avoid Git Secret Scanning) ===
-OPENROUTER_KEY = os.getenv("OPENAI_KEY", "")
+OPENROUTER_KEY = os.getenv("OPENROUTER_KEY", "")
+OPENAI_KEY     = os.getenv("OPENAI_KEY", "")
 GROQ_KEY       = os.getenv("GROQ_KEY", "")
 TOGETHER_KEY   = os.getenv("TOGETHER_KEY", "")
 
-@lru_cache(None)
-def get_providers():
-    from openai import OpenAI
-    return [
-        {"name": "Groq",      "client": OpenAI(base_url="https://api.groq.com/openai/v1", api_key=GROQ_KEY),      "models": ["llama-3.2-3b-instruct"]},
-        {"name": "OpenRouter","client": OpenAI(base_url="https://openrouter.ai/api/v1", api_key=OPENROUTER_KEY), "models": ["meta-llama/llama-3.2-3b-instruct:free"]},
-        {"name": "Together",  "client": OpenAI(base_url="https://api.together.xyz/v1", api_key=TOGETHER_KEY),    "models": ["meta-llama/Llama-3.2-3B-Instruct-Turbo"]},
-    ]
+PROVIDERS = [
+    {"name": "Groq",      "client": OpenAI(base_url="https://api.groq.com/openai/v1", api_key=GROQ_KEY),      "models": ["llama-3.2-3b-instruct"]},
+    {"name": "OpenRouter","client": OpenAI(base_url="https://openrouter.ai/api/v1", api_key=OPENROUTER_KEY), "models": ["meta-llama/llama-3.2-3b-instruct:free"]},
+    {"name": "Together",  "client": OpenAI(base_url="https://api.together.xyz/v1", api_key=TOGETHER_KEY),    "models": ["meta-llama/Llama-3.2-3B-Instruct-Turbo"]},
+]
 
 # === INSANELY STRONG 3-PASS HUMANIZER PROMPT ===
 def get_humanizer_prompt(stage: int):
@@ -123,23 +121,19 @@ def download_nltk_assets():
 @lru_cache(None)
 def get_transformer_model():
     AutoTokenizer, AutoModelForSequenceClassification, _, _ = get_transformers()
-    print("Loading DeBERTa-v3-base...")
-    model_name = "microsoft/deberta-v3-base"
+    print("Loading DeBERTa-v3-large...")
+    model_name = "microsoft/deberta-v3-large"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSequenceClassification.from_pretrained(model_name)
-    # CPU Quantization (2x faster, 4x less RAM)
-    model = torch.quantization.quantize_dynamic(model, {torch.nn.Linear}, dtype=torch.qint8)
     model.eval()
     return tokenizer, model
 
 @lru_cache(None)
 def get_perplexity_model():
-    _, _, GPT2LMHeadModel, GPT2Tokenizer = get_transformers()
+    from transformers import GPT2LMHeadModel, GPT2Tokenizer
     print("Loading GPT-2 for Perplexity...")
     tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
     model = GPT2LMHeadModel.from_pretrained("gpt2")
-    # CPU Quantization (2x faster, 4x less RAM)
-    model = torch.quantization.quantize_dynamic(model, {torch.nn.Linear}, dtype=torch.qint8)
     model.eval()
     return tokenizer, model
 
@@ -350,7 +344,7 @@ def humanize_text(text: str) -> str:
     for stage in range(1, 4):
         prompt = get_humanizer_prompt(stage).format(text=current)
 
-        shuffled_providers = get_providers()[:]
+        shuffled_providers = PROVIDERS[:]
         random.shuffle(shuffled_providers)
 
         success = False

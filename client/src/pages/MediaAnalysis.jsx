@@ -30,10 +30,10 @@ export default function MediaAnalysis() {
         formData.append('file', file)
 
         try {
-            const apiBase = 'https://truthlens-1-moq2.onrender.com'
-            const res = await axios.post(`${apiBase}/api/scans/upload`, formData, {
+        try {
+            const res = await axios.post('/api/scans/upload', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
-                timeout: 120000,
+                timeout: 60000,
             })
             setTimeout(() => {
                 setAnalyzing(false)
