@@ -61,9 +61,10 @@ export default function TextAnalyzer() {
         }
 
         try {
-            const res = await axios.post('/api/text/analyze', form, {
+            const apiBase = 'https://truthlens-1-moq2.onrender.com'
+            const res = await axios.post(`${apiBase}/api/text/analyze`, form, {
                 headers: { 'Content-Type': 'multipart/form-data' },
-                timeout: 60000,
+                timeout: 120000,
             })
             if (isRecheck) {
                 setRecheckResult(res.data)
@@ -91,8 +92,9 @@ export default function TextAnalyzer() {
         setError('')
 
         try {
+            const apiBase = 'https://truthlens-1-moq2.onrender.com'
             const textToHumanize = text || result.originalText
-            const res = await axios.post('/api/text/humanize', {
+            const res = await axios.post(`${apiBase}/api/text/humanize`, {
                 text: textToHumanize
             }, { timeout: 120000 })
 

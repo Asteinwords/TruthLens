@@ -123,8 +123,8 @@ def download_nltk_assets():
 @lru_cache(None)
 def get_transformer_model():
     AutoTokenizer, AutoModelForSequenceClassification, _, _ = get_transformers()
-    print("Loading DeBERTa-v3-large...")
-    model_name = "microsoft/deberta-v3-large"
+    print("Loading DeBERTa-v3-base...")
+    model_name = "microsoft/deberta-v3-base"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSequenceClassification.from_pretrained(model_name)
     # CPU Quantization (2x faster, 4x less RAM)

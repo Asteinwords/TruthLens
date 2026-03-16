@@ -55,6 +55,30 @@ async def humanize_endpoint(text: str = Form(...)):
     humanized = humanize_text(text)
     return {"humanizedText": humanized}
 
+def warm_models():
+    """Background thread to pre-load models for snappy first-request response."""
+    import time
+    from analyzer import get_ateeqq_model, get_prithiv_model, get_mediapipe_detectors
+    from text_analyzer import get_transformer_model, get_perplexity_model
+    
+    print("🚀 Starting background model warming...")
+    time.sleep(2) # Give uvicorn a head start to bind port
+    try: get_ateeqq_model()
+    except: pass
+    try: get_prithiv_model()
+    except: pass
+    try: get_transformer_model()
+    except: pass
+    try: get_perplexity_model()
+    except: pass
+    try: get_mediapipe_detectors()
+    except: pass
+    print("✅ Model warming sequence complete.")
+
 if __name__ == "__main__":
+    import threading
+    # Start warming in background so port binds INSTANTLY
+    threading.Thread(target=warm_models, daemon=True).start()
+    
     port = int(os.environ.get("PORT", 8002))
     uvicorn.run("main:app", host="0.0.0.0", port=port)
