@@ -374,21 +374,23 @@ def analyze_media(content, filename, content_type):
     wavelet_score, wavelet_info = calculate_wavelet_anomalies(img)
     texture_score = analyze_texture_consistency(img)
     
-    # --- Deep Learning Neural Layer (Primary Detection) ---
-    ml_score = ml_detection_score(img)
+    # --- Deep Learning Neural Layer (Dual Ensemble) ---
+    ateeqq_score = ml_detection_score(img)
+    prithiv_score = deepfake_classifier_score(img)
+    neural_score = max(ateeqq_score, prithiv_score) * 0.7 + min(ateeqq_score, prithiv_score) * 0.3
 
-    # --- Forensic Weighted Heuristic (35% weight in final ensemble) ---
+    # --- Forensic Weighted Heuristic (30% weight) ---
     forensic_weighted = (
         ela_score     * 0.15 +
-        fft_score     * 0.30 +
-        noise_score   * 0.25 +
+        fft_score     * 0.35 +
+        noise_score   * 0.20 +
         wavelet_score * 0.20 +
         texture_score * 0.10
     )
 
-    # --- Ensemble Final Score (State-of-the-Art 2026 methodology) ---
-    # 65% weight on Neural pattern recognition, 35% on forensic algorithmic anomalies
-    final_ai_prob = (ml_score * 0.65) + (forensic_weighted * 0.35)
+    # --- Ensemble Final Score ---
+    # 70% weight on Neural pattern recognition, 30% on forensic algorithmic anomalies
+    final_ai_prob = (neural_score * 0.70) + (forensic_weighted * 0.30)
 
     num_faces = 0
     num_hands = 0
@@ -409,25 +411,13 @@ def analyze_media(content, filename, content_type):
         faces_cv = face_cascade.detectMultiScale(gray_cv, 1.1, 4)
         num_faces = len(faces_cv)
 
-    file_size = len(content)
-    complex_scene_bonus = 18 if (num_faces >= 2 or num_hands >= 1 or file_size > 400000) else 0
-    podium_bonus = 15 if any(k in filename.lower() for k in ["podium", "press", "event", "modi", "president"]) else 0
-    final_ai_prob -= (complex_scene_bonus + podium_bonus)
-
-    gray = np.array(img.convert("L"))
-    face_roi = gray[height//4:height//2, width//4:3*width//4]
-    face_std = np.std(face_roi) if face_roi.size > 0 else 0
-    if face_std > 35: final_ai_prob -= 15
-    elif face_std < 25 and np.mean(face_roi) > 100: final_ai_prob += 12
-
-    # Subject Context
-    halluc_words = ['cat', 'kitten', 'puppy', 'cute', 'astronaut', 'space', 'anime', 'cartoon', 'fantasy']
-    if any(w in filename.lower() for w in halluc_words) and final_ai_prob < 45:
-        final_ai_prob += 18
-
     metadata = extract_metadata(content, filename, content_type)
     if metadata["metadataStatus"] in ["Stripped", "Modified"]:
-        final_ai_prob += 10
+        final_ai_prob += 5
+    
+    # Sensitivity Floor (If any neural model is very high, trust it)
+    if max(ateeqq_score, prithiv_score) > 85:
+        final_ai_prob = max(final_ai_prob, max(ateeqq_score, prithiv_score))
         
     ai_probability = round(max(5.0, min(98.5, final_ai_prob)), 1)
     human_probability = round(100 - ai_probability, 1)
@@ -438,12 +428,11 @@ def analyze_media(content, filename, content_type):
     confidence = "High" if abs(ai_probability - 50) > 35 else "Medium"
     
     artifacts = []
-    if ml_score > 75: artifacts.append("Neural pattern match (Deep Learning classifier)")
+    if ateeqq_score > 75: artifacts.append("Neural pattern match (Deep Learning classifier)")
+    if prithiv_score > 75: artifacts.append("Deepfake signature match (Model B: Geometric/Face Anomaly)")
     if ela_score > 42: artifacts.append("JPEG compression mismatch (ELA)")
     if fft_score > 68: artifacts.append("Suspicious FFT frequency ring detected")
     if wavelet_score > 62: artifacts.append("Multi-scale wavelet inconsistencies")
-    if complex_scene_bonus > 15: artifacts.append("Behavioral Signal: Verified complex authentic scene")
-    if podium_bonus > 12: artifacts.append("Context Signal: Official press/event verified")
 
     return {
         "aiProbability": ai_probability,
@@ -459,21 +448,21 @@ def analyze_media(content, filename, content_type):
         "pixelForensics": {
             "noiseDistribution": noise_verd,
             "waveletAnomaly": wavelet_info.get("score"),
-            "mlConfidence": round(ml_score, 1),
-            "skinTextureScore": round(100 - (8 if face_std > 35 else (65 if face_std < 25 else 42)), 1),
+            "mlConfidence": round(max(ateeqq_score, prithiv_score), 1),
+            "skinTextureScore": round(100 - (65 if texture_score > 50 else 42), 1),
             "ganFingerprint": "Detected" if fft_score > 75 else "Not detected",
             "edgeIntegrity": "Natural" if texture_score < 50 else "Processed"
         },
         "frequencySpectrum": {
             "bands": fft_bands,
             "dctAnomalyScore": float(ela_score),
-            "dominantPattern": "Synthetic Neural" if ml_score > 75 else "Natural 1/f",
+            "dominantPattern": "Synthetic Neural" if max(ateeqq_score, prithiv_score) > 75 else "Natural 1/f",
             "fftFingerprint": "Suspicious" if fft_score > 65 else "Plausible"
         },
         "watermarkDetection": {
             "overallWatermarkStatus": "AI Signature Identified" if ai_probability > 80 else "None",
             "c2paWatermark": "Not detected",
-            "stabilityAiSignature": "High Match" if ml_score > 85 else "None",
+            "stabilityAiSignature": "High Match" if ateeqq_score > 85 else "None",
         },
         "explainableReport": f"TruthLens Engine v2026: Hybrid Ensemble detected {len(artifacts)} forensic signals. Neural pattern matching (ML) combined with structural frequency analysis reveals {'synthetic generative synthesis' if ai_probability > 60 else 'authentic sensor capture'}.",
         "metadata": metadata,
