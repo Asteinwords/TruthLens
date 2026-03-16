@@ -30,7 +30,6 @@ export default function MediaAnalysis() {
         formData.append('file', file)
 
         try {
-        try {
             const res = await axios.post('/api/scans/upload', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
                 timeout: 60000,

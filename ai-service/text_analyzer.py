@@ -7,6 +7,7 @@ import os
 from collections import Counter
 from functools import lru_cache
 from typing import Dict
+from openai import OpenAI
 from tenacity import retry, stop_after_attempt, wait_exponential
 from dotenv import load_dotenv
 
