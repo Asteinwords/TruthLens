@@ -69,7 +69,7 @@ export default function Dashboard() {
                             style={{ border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
                             <RefreshCw size={14} /> Refresh
                         </button>
-                        <Link to="/" className="btn-glow">
+                        <Link to="/media-analysis" className="btn-glow">
                             <span className="flex items-center gap-2"><Upload size={15} /> New Scan</span>
                         </Link>
                     </div>

@@ -56,44 +56,47 @@ export default function MediaAnalysis() {
 
     return (
         <div className="min-h-[calc(100vh-64px)] hero-bg grid-bg flex flex-col items-center justify-center py-6 px-4 relative overflow-y-auto">
-            <div className="max-w-3xl w-full text-center mb-6">
+        <div className="flex-1 w-full flex flex-col items-center justify-center py-8">
+            <div className="max-w-3xl w-full text-center mb-10">
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-4 glass-card border" style={{ borderColor: 'rgba(91,120,245,0.3)' }}>
                     <Eye size={14} className="text-brand-400" />
                     <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
                         Deep Vision Forensics Engine
                     </span>
                 </div>
-                <h1 className="text-4xl md:text-5xl font-bold mb-3" style={{ color: 'var(--text-primary)' }}>
+                <h1 className="text-4xl md:text-5xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
                     Media <span className="gradient-text">Analysis</span>
                 </h1>
-                <p className="text-base md:text-lg max-w-xl mx-auto" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-base md:text-lg max-w-2xl mx-auto" style={{ color: 'var(--text-secondary)' }}>
                     Upload an image or video to verify its authenticity using our multi-model neural and statistical forensic pipeline.
                 </p>
             </div>
 
             {/* Dropzone */}
             <div
-                {...getRootProps()}
-                className={`drop-zone w-full max-w-2xl cursor-pointer p-8 md:p-10 transition-all ${isDragActive ? 'active' : ''}`}
-                onClick={(e) => {
-                    if (!user) {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        setShowLoginPrompt(true)
+                {...getRootProps({
+                    onClick: (e) => {
+                        if (!user) {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            setShowLoginPrompt(true)
+                        }
                     }
-                }}
+                })}
+                className={`drop-zone w-full max-w-2xl cursor-pointer p-8 md:p-12 transition-all ${isDragActive ? 'active' : ''}`}
             >
                 <input {...getInputProps()} />
-                <div className="flex flex-col items-center gap-4">
-                    <div className="relative">
-                        <div className="w-20 h-20 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(91,120,245,0.15)', border: '1px solid rgba(91,120,245,0.3)' }}>
-                            <Upload size={36} className="text-brand-400" />
+                <div className="flex flex-col items-center gap-6">
+                    <div className="relative group">
+                        <div className="w-24 h-24 rounded-3xl flex items-center justify-center transition-all duration-300 group-hover:scale-110" 
+                             style={{ background: 'rgba(91,120,245,0.15)', border: '1px solid rgba(91,120,245,0.3)' }}>
+                            <Upload size={42} className="text-brand-400 group-hover:text-brand-300 transition-colors" />
                         </div>
-                        {isDragActive && <div className="absolute inset-0 rounded-2xl animate-ping" style={{ background: 'rgba(91,120,245,0.2)' }} />}
+                        {isDragActive && <div className="absolute inset-0 rounded-3xl animate-ping" style={{ background: 'rgba(91,120,245,0.2)' }} />}
                     </div>
 
-                    <div>
-                        <p className="text-xl font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
+                    <div className="text-center">
+                        <p className="text-2xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
                             {isDragActive ? 'Drop your file here...' : 'Drag & drop media to analyze'}
                         </p>
                         <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
@@ -101,29 +104,34 @@ export default function MediaAnalysis() {
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-6 mt-2">
-                        <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                            <Image size={16} className="text-brand-400" /> Images
+                    <div className="flex items-center gap-8 mt-2">
+                        <div className="flex items-center gap-2 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+                            <Image size={18} className="text-brand-400" /> Images
                         </div>
-                        <div className="w-1 h-1 rounded-full" style={{ background: 'var(--text-secondary)' }} />
-                        <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                            <Video size={16} className="text-brand-400" /> Videos
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'rgba(91,120,245,0.4)' }} />
+                        <div className="flex items-center gap-2 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+                            <Video size={18} className="text-brand-400" /> Videos
                         </div>
                     </div>
 
-                    <button className="btn-glow mt-4" onClick={(e) => {
+                    <button className="btn-glow mt-6 px-10 py-4 text-lg" onClick={(e) => {
+                        // The button click will bubble up to the getRootProps div if not stopped
+                        // But since getRootProps is on the parent, we don't need to do much here
+                        // unless we want to DIFFERENTIATE the button from the rest of the zone.
+                        // However, react-dropzone handles clicks on the container.
                         if (!user) {
                             e.preventDefault()
                             e.stopPropagation()
                             setShowLoginPrompt(true)
                         }
                     }}>
-                        <span className="flex items-center gap-2">
-                            <Search size={16} /> Analyze Media
+                        <span className="flex items-center gap-3">
+                            <Search size={20} /> Analyze Media
                         </span>
                     </button>
                 </div>
             </div>
+        </div>
 
             {error && (
                 <div className="mt-6 p-4 rounded-xl mx-auto w-full max-w-2xl glass-card text-center" style={{ borderColor: 'rgba(255,100,100,0.3)', borderWidth: 1 }}>
